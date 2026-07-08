@@ -31,7 +31,7 @@ dependencies:
   dio: ^5.4.0   # آخرین نسخه
   flutter:
     sdk: flutter
-  http: ^1.1.0
+  http: ^1.6.0
   flutter_dotenv: ^5.1.0
 
   # The following adds the Cupertino Icons font to your application.
@@ -41,6 +41,12 @@ dependencies:
   path_provider: ^2.1.2
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  url_launcher: ^6.3.0
+  flutter_map: ^8.3.0
+  latlong2: ^0.9.1
+  provider: ^6.1.5+1
+  google_maps_flutter: ^2.5.0
+
   # hive: ^2.2.3
 
   
@@ -132,6 +138,10 @@ flutter:
     - images/3.png
     - images/bg.jpg
     - .env
+    - data/cities.json
+    - images/cities/
+    - images/
+    - images/mask.jpg
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

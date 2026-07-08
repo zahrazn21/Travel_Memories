@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:travel_memories/providers/theme_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -12,11 +14,19 @@ class ProfileScreen extends StatelessWidget {
         foregroundColor: Colors.black,
         elevation: 0,
         actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) =>
+                context.read<ThemeProvider>().setTheme(value),
+            icon: const Icon(Icons.palette_outlined),
+            itemBuilder: (_) => const [
+              // PopupMenuItem(value: 'light', child: Text('روشن ☀️')),
+              PopupMenuItem(value: 'dark', child: Text('تاریک 🌙')),
+    PopupMenuItem(value: 'blue', child: Text('آبی 💙')),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              // تنظیمات
-            },
+            onPressed: () {},
           ),
         ],
       ),
@@ -54,7 +64,11 @@ class ProfileScreen extends StatelessWidget {
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                      child: const Icon(
+                        Icons.edit,
+                        size: 20,
+                        color: Colors.blue,
+                      ),
                     ),
                   ),
                 ],
@@ -90,8 +104,7 @@ class ProfileScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
-                },
+                onPressed: () {},
                 icon: const Icon(Icons.logout),
                 label: const Text('خروج از حساب'),
                 style: ElevatedButton.styleFrom(
@@ -118,19 +131,12 @@ Widget _buildProfileItem(IconData icon, String value) {
       children: [
         Icon(icon, color: Colors.blue, size: 22),
         const SizedBox(width: 15),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 16),
-        ),
+        Text(value, style: const TextStyle(fontSize: 16)),
       ],
     ),
   );
 }
 
 Widget _buildDivider() {
-  return Divider(
-    height: 1,
-    thickness: 1,
-    color: Colors.grey.shade200,
-  );
+  return Divider(height: 1, thickness: 1, color: Colors.grey.shade200);
 }

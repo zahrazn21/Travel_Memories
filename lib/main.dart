@@ -1,15 +1,25 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:travel_memories/providers/theme_provider.dart';
 import 'package:travel_memories/screens/home_screen.dart';
 import 'package:travel_memories/screens/search_screen.dart';
 import 'package:travel_memories/screens/favorites_screen.dart';
 import 'package:travel_memories/screens/memories_screen.dart';
 import 'package:travel_memories/screens/profile_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:travel_memories/widgets/custom_bottom_nav.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -17,9 +27,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(
+      theme: themeProvider.currentTheme.copyWith(
         textTheme: const TextTheme(
           displayLarge: TextStyle(fontFamily: 'PlaypenSansArabic'),
           displayMedium: TextStyle(fontFamily: 'PlaypenSansArabic'),
@@ -42,9 +54,7 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         return Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 500,
-            ),
+            constraints: const BoxConstraints(maxWidth: 500),
             child: child!,
           ),
         );
@@ -63,13 +73,12 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 2;
 
-  // ترتیب: جستجو، خاطرات من، خانه، علاقه‌مندی‌ها، پروفایل
   final List<Widget> _pages = [
-    const SearchScreen(),       // جستجو
-    const MemoriesScreen(),     // خاطرات من
-    const HomeScreen(title: 'Travel Memories'), // خانه (وسط)
-    const FavoritesScreen(),    // علاقه‌مندی‌ها
-    const ProfileScreen(),      // پروفایل
+    const SearchScreen(),
+    const MemoriesScreen(),
+    const HomeScreen(title: 'Travel Memories'),
+    const FavoritesScreen(),
+    const ProfileScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -81,89 +90,23 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        elevation: 0,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        selectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w500,
-          fontFamily: 'PlaypenSansArabic',
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontFamily: 'PlaypenSansArabic',
-        ),
-        items: [
-          BottomNavigationBarItem(
-            icon: _buildNavIcon(
-              icon: Icons.search_outlined,
-              isSelected: _selectedIndex == 0,
-              index: 0,
+      body: Stack(
+        children: [
+          // _pages[_selectedIndex],
+          IndexedStack(index: _selectedIndex, children: _pages),
+     Positioned(
+            bottom: 10,
+            left: 16,
+            right: 16,
+            child: CustomBottomNav(
+              selectedIndex: _selectedIndex,
+              onItemTapped: _onItemTapped,
             ),
-            label: 'جستجو',
-          ),
-          BottomNavigationBarItem(
-            icon: _buildNavIcon(
-              icon: Icons.bookmark_border,
-              isSelected: _selectedIndex == 1,
-              index: 1,
-            ),
-            label: 'خاطرات',
-          ),
-          BottomNavigationBarItem(
-            icon: _buildNavIcon(
-              icon: Icons.home_outlined,
-              isSelected: _selectedIndex == 2,
-              index: 2,
-              isHome: true,
-            ),
-            label: 'خانه',
-          ),
-          BottomNavigationBarItem(
-            icon: _buildNavIcon(
-              icon: Icons.favorite_border,
-              isSelected: _selectedIndex == 3,
-              index: 3,
-            ),
-            label: 'علاقه‌مندی',
-          ),
-          BottomNavigationBarItem(
-            icon: _buildNavIcon(
-              icon: Icons.person_outline,
-              isSelected: _selectedIndex == 4,
-              index: 4,
-            ),
-            label: 'پروفایل',
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNavIcon({
-    required IconData icon,
-    required bool isSelected,
-    required int index,
-    bool isHome = false,
-  }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: EdgeInsets.all(isSelected ? 8 : (isHome ? 8 : 4)),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isSelected ? Colors.pink.shade50 : Colors.transparent,
-      ),
-      child: Icon(
-        icon,
-        color: isSelected ? Colors.pink : Colors.grey.shade400,
-        size: isSelected ? (isHome ? 28 : 26) : (isHome ? 26 : 22),
-      ),
-    );
-  }
+
 }
