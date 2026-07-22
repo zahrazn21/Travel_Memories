@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:travel_memories/themes/app_background_theme.dart';
 
 class WaveClipper extends CustomClipper<Path> {
   const WaveClipper();
@@ -27,15 +28,18 @@ class WaveClipper extends CustomClipper<Path> {
 }
 
 class WaveBorderPainter extends CustomPainter {
-  const WaveBorderPainter();
+  final AppBackgroundTheme theme;
+  
+  const WaveBorderPainter({required this.theme});
 
   @override
   void paint(Canvas canvas, Size size) {
     final path = const WaveClipper().getClip(size);
+    
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.30)
+      ..color = theme.memoryTextColor[1]
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8;
+      ..strokeWidth = 2;
     canvas.drawPath(path, paint);
   }
 

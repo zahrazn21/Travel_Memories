@@ -7,14 +7,20 @@
       "province_fa": "تهران",
       "province_en": "Tehran",
       "lat": 35.6892,
-      "lng": 51.3890,
+      "lng": 51.389,
       "population": 9200000,
       "area": 730,
       "about": "تهران، پایتخت ایران و بزرگترین شهر کشور، با بیش از ۹ میلیون جمعیت، قلب سیاسی، اقتصادی و فرهنگی ایران است. این شهر با تاریخچه‌ای چند هزار ساله، از دوران قاجار به عنوان پایتخت انتخاب شد و امروزه با برج میلاد، آزادی، موزه‌ها، کاخ‌های تاریخی و زندگی مدرن، شهری پویا و پرجنب‌وجوش است.",
       "wikipedia_fa": "تهران",
       "unsplash_query": "Tehran Iran",
       "image": "Tehran.png",
-      "slogan": "پایتخت ایران، قلب تپنده کشور"
+      "slogan": "پایتخت ایران، قلب تپنده کشور",
+      "is_popular": true,
+      "best_seasons": [
+        "spring",
+        "fall"
+      ],
+      "seasonal_tagline": "پایتخت، هر فصل به‌صرفه"
     },
     {
       "id": 2,
@@ -30,7 +36,14 @@
       "wikipedia_fa": "مشهد",
       "unsplash_query": "Mashhad Iran",
       "image": "Mashhad.png",
-      "slogan": "شهر نور و رضوان، قبله دل‌های عاشق"
+      "slogan": "شهر نور و رضوان، قبله دل‌های عاشق",
+      "is_popular": true,
+      "best_seasons": [
+        "spring",
+        "fall",
+        "winter"
+      ],
+      "seasonal_tagline": "مقصد زیارتی محبوب سراسر سال"
     },
     {
       "id": 3,
@@ -39,14 +52,20 @@
       "province_fa": "اصفهان",
       "province_en": "Isfahan",
       "lat": 32.6546,
-      "lng": 51.6680,
+      "lng": 51.668,
       "population": 2220000,
       "area": 550,
       "about": "اصفهان، نصف جهان، یکی از زیباترین شهرهای جهان با معماری خیره‌کننده اسلامی و ایرانی است. میدان نقش جهان (ثبت جهانی یونسکو)، پل‌های تاریخی سی‌وسه‌پل و خواجو، مسجد شیخ‌لطف‌الله و کاخ عالی‌قاپو از جاذبه‌های بی‌نظیر این شهر هستند. اصفهان همچنین مرکز هنرهای سنتی مانند میناکاری و خاتم‌کاری است.",
       "wikipedia_fa": "اصفهان",
       "unsplash_query": "Isfahan Iran",
       "image": "Isfahan.png",
-      "slogan": "نصف جهان، نگین معماری ایران"
+      "slogan": "نصف جهان، نگین معماری ایران",
+      "is_popular": true,
+      "best_seasons": [
+        "spring",
+        "fall"
+      ],
+      "seasonal_tagline": "بهترین وقت برای گشت میدان نقش جهان"
     },
     {
       "id": 4,
@@ -62,7 +81,12 @@
       "wikipedia_fa": "شیراز",
       "unsplash_query": "Shiraz Iran",
       "image": "Shiraz.png",
-      "slogan": "شهر شعر، گل و بلبل، دارالعلم"
+      "slogan": "شهر شعر، گل و بلبل، دارالعلم",
+      "is_popular": true,
+      "best_seasons": [
+        "spring"
+      ],
+      "seasonal_tagline": "فصل بهار بوی نارنج می‌گیره"
     },
     {
       "id": 5,
@@ -70,7 +94,7 @@
       "name_en": "Tabriz",
       "province_fa": "آذربایجان شرقی",
       "province_en": "East Azerbaijan",
-      "lat": 38.0800,
+      "lat": 38.08,
       "lng": 46.2919,
       "population": 1773000,
       "area": 450,
@@ -78,7 +102,13 @@
       "wikipedia_fa": "تبریز",
       "unsplash_query": "Tabriz Iran",
       "image": "Tabriz.png",
-      "slogan": "شهر اولین‌ها، دارالسلطنه"
+      "slogan": "شهر اولین‌ها، دارالسلطنه",
+      "is_popular": true,
+      "best_seasons": [
+        "summer",
+        "fall"
+      ],
+      "seasonal_tagline": "هوای خنک برای فرار از گرما"
     },
     {
       "id": 6,
@@ -86,7 +116,7 @@
       "name_en": "Karaj",
       "province_fa": "البرز",
       "province_en": "Alborz",
-      "lat": 35.8400,
+      "lat": 35.84,
       "lng": 50.9391,
       "population": 1973000,
       "area": 320,
@@ -94,7 +124,12 @@
       "wikipedia_fa": "کرج",
       "unsplash_query": "Karaj Iran",
       "image": "Karaj.png",
-      "slogan": "دروازه البرز، شهر باغ‌ها"
+      "slogan": "دروازه البرز، شهر باغ‌ها",
+      "is_popular": false,
+      "best_seasons": [
+        "spring"
+      ],
+      "seasonal_tagline": "نزدیک‌ترین فرار از شهر"
     },
     {
       "id": 7,
@@ -110,7 +145,12 @@
       "wikipedia_fa": "اهواز",
       "unsplash_query": "Ahvaz Iran",
       "image": "Ahvaz.png",
-      "slogan": "شهر پل‌ها، پایتخت نفت ایران"
+      "slogan": "شهر پل‌ها، پایتخت نفت ایران",
+      "is_popular": false,
+      "best_seasons": [
+        "winter"
+      ],
+      "seasonal_tagline": "زمستون هوا مطبوع‌تره"
     },
     {
       "id": 8,
@@ -126,7 +166,13 @@
       "wikipedia_fa": "قم",
       "unsplash_query": "Qom Iran shrine",
       "image": "Qom.png",
-      "slogan": "شهر علم و معنویت، حرم اهل‌بیت"
+      "slogan": "شهر علم و معنویت، حرم اهل‌بیت",
+      "is_popular": false,
+      "best_seasons": [
+        "fall",
+        "winter"
+      ],
+      "seasonal_tagline": "مقصد زیارتی نزدیک تهران"
     },
     {
       "id": 9,
@@ -135,14 +181,20 @@
       "province_fa": "کرمانشاه",
       "province_en": "Kermanshah",
       "lat": 34.3142,
-      "lng": 47.0650,
+      "lng": 47.065,
       "population": 946000,
       "area": 280,
       "about": "کرمانشاه، شهر تاریخ و تمدن کهن، دارای آثار تاریخی مهمی مانند طاق‌بستان (نقوش برجسته ساسانی)، معبد آناهیتا، بیستون (کتیبه داریوش بزرگ، ثبت جهانی) و پارک کوهستان است. این شهر همچنین به خاطر غذاهای محلی معروف مانند خورش خرمالو و دنده کباب شناخته می‌شود.",
       "wikipedia_fa": "کرمانشاه",
       "unsplash_query": "Kermanshah Iran",
       "image": "Kermanshah.png",
-      "slogan": "شهر تاریخ و طاق‌ها"
+      "slogan": "شهر تاریخ و طاق‌ها",
+      "is_popular": false,
+      "best_seasons": [
+        "fall",
+        "winter"
+      ],
+      "seasonal_tagline": "بهترین فصل برای بازدید از بیستون"
     },
     {
       "id": 10,
@@ -151,14 +203,19 @@
       "province_fa": "آذربایجان غربی",
       "province_en": "West Azerbaijan",
       "lat": 37.5527,
-      "lng": 45.0760,
+      "lng": 45.076,
       "population": 736000,
       "area": 180,
       "about": "ارومیه، مرکز آذربایجان غربی و همسایه دریاچه ارومیه (دریاچه نمک)، با آب‌وهوای خنک، مناظر طبیعی بکر، باغ‌های سیب و انگور، بازارچه‌های محلی و تنوع قومیتی (کرد، آذری، ارمنی) شناخته می‌شود. دریاچه ارومیه یکی از بزرگترین دریاچه‌های نمکی جهان است.",
       "wikipedia_fa": "ارومیه",
       "unsplash_query": "Urmia Iran lake",
       "image": "Urmia.png",
-      "slogan": "شهر دریاچه و باغ‌ها"
+      "slogan": "شهر دریاچه و باغ‌ها",
+      "is_popular": true,
+      "best_seasons": [
+        "summer"
+      ],
+      "seasonal_tagline": "کنار دریاچه ارومیه، تابستون بهترینه"
     },
     {
       "id": 11,
@@ -174,7 +231,13 @@
       "wikipedia_fa": "رشت",
       "unsplash_query": "Rasht Gilan Iran",
       "image": "Rasht.png",
-      "slogan": "شهر باران، عروس شمال"
+      "slogan": "شهر باران، عروس شمال",
+      "is_popular": true,
+      "best_seasons": [
+        "spring",
+        "summer"
+      ],
+      "seasonal_tagline": "سبزترین شهر ایران در بهار"
     },
     {
       "id": 12,
@@ -190,7 +253,12 @@
       "wikipedia_fa": "زاهدان",
       "unsplash_query": "Zahedan Iran",
       "image": "Zahedan.png",
-      "slogan": "دروازه شرق، کویر و نخل"
+      "slogan": "دروازه شرق، کویر و نخل",
+      "is_popular": false,
+      "best_seasons": [
+        "winter"
+      ],
+      "seasonal_tagline": "زمستون هوای معتدل‌تری داره"
     },
     {
       "id": 13,
@@ -206,7 +274,12 @@
       "wikipedia_fa": "همدان",
       "unsplash_query": "Hamedan Iran",
       "image": "Hamedan.png",
-      "slogan": "شهر هگمتانه، شهر تاریخی"
+      "slogan": "شهر هگمتانه، شهر تاریخی",
+      "is_popular": true,
+      "best_seasons": [
+        "summer"
+      ],
+      "seasonal_tagline": "پناهگاه خنک کوهستانی تابستون"
     },
     {
       "id": 14,
@@ -222,7 +295,13 @@
       "wikipedia_fa": "کرمان",
       "unsplash_query": "Kerman Iran bazaar",
       "image": "Kerman.png",
-      "slogan": "شهر کویر و پسته، دیار گنج‌ها"
+      "slogan": "شهر کویر و پسته، دیار گنج‌ها",
+      "is_popular": false,
+      "best_seasons": [
+        "winter",
+        "fall"
+      ],
+      "seasonal_tagline": "کویر رو زمستون تجربه کن"
     },
     {
       "id": 15,
@@ -238,7 +317,13 @@
       "wikipedia_fa": "یزد",
       "unsplash_query": "Yazd Iran windtower",
       "image": "Yazd.png",
-      "slogan": "شهر بادگیرها و خشتی‌ها، پایتخت کویر"
+      "slogan": "شهر بادگیرها و خشتی‌ها، پایتخت کویر",
+      "is_popular": true,
+      "best_seasons": [
+        "fall",
+        "spring"
+      ],
+      "seasonal_tagline": "بادگیرها زیر آفتاب ملایم پاییز"
     },
     {
       "id": 16,
@@ -254,7 +339,12 @@
       "wikipedia_fa": "اردبیل",
       "unsplash_query": "Ardabil Iran Sheikh Safi",
       "image": "Ardabil.png",
-      "slogan": "شهر سبلان، پایتخت طبیعت"
+      "slogan": "شهر سبلان، پایتخت طبیعت",
+      "is_popular": true,
+      "best_seasons": [
+        "summer"
+      ],
+      "seasonal_tagline": "چشمه‌های آب‌گرم، مقصد تابستونی"
     },
     {
       "id": 17,
@@ -270,7 +360,12 @@
       "wikipedia_fa": "بندرعباس",
       "unsplash_query": "Bandar Abbas Iran port",
       "image": "Bandar_Abbas.png",
-      "slogan": "دریای گرم، بندر جنوب"
+      "slogan": "دریای گرم، بندر جنوب",
+      "is_popular": true,
+      "best_seasons": [
+        "winter"
+      ],
+      "seasonal_tagline": "جنوب گرم، زمستون بهترین وقتشه"
     },
     {
       "id": 18,
@@ -279,14 +374,19 @@
       "province_fa": "مرکزی",
       "province_en": "Markazi",
       "lat": 34.0954,
-      "lng": 49.6890,
+      "lng": 49.689,
       "population": 526000,
       "area": 140,
       "about": "اراک، شهر صنعت و ماشین‌آلات، مرکز استان مرکزی و یکی از قطب‌های صنعتی ایران است. این شهر با کارخانه‌های بزرگ ماشین‌سازی، صنایع فلزی و پتروشیمی، نقش مهمی در اقتصاد کشور دارد. اراک همچنین دارای جاذبه‌های طبیعی مانند دریاچه نمک و بازار تاریخی است.",
       "wikipedia_fa": "اراک",
       "unsplash_query": "Arak Iran",
       "image": "Arak.png",
-      "slogan": "شهر صنعت و ماشین‌آلات"
+      "slogan": "شهر صنعت و ماشین‌آلات",
+      "is_popular": false,
+      "best_seasons": [
+        "fall"
+      ],
+      "seasonal_tagline": "پاییز صنعتی و آروم"
     },
     {
       "id": 19,
@@ -294,7 +394,7 @@
       "name_en": "Islamshahr",
       "province_fa": "تهران",
       "province_en": "Tehran",
-      "lat": 35.5350,
+      "lat": 35.535,
       "lng": 51.2329,
       "population": 490000,
       "area": 120,
@@ -302,7 +402,12 @@
       "wikipedia_fa": "اسلامشهر",
       "unsplash_query": "Islamshahr Tehran Iran",
       "image": "EslamShahr.png",
-      "slogan": "شهر نزدیک تهران، شهر صنعت"
+      "slogan": "شهر نزدیک تهران، شهر صنعت",
+      "is_popular": false,
+      "best_seasons": [
+        "fall"
+      ],
+      "seasonal_tagline": "نزدیک تهران، هر وقت در دسترس"
     },
     {
       "id": 20,
@@ -318,7 +423,12 @@
       "wikipedia_fa": "زنجان",
       "unsplash_query": "Zanjan Iran",
       "image": "Zanjan.png",
-      "slogan": "شهر چاقو و تاریخ"
+      "slogan": "شهر چاقو و تاریخ",
+      "is_popular": false,
+      "best_seasons": [
+        "fall"
+      ],
+      "seasonal_tagline": "شهر چاقو در پاییز"
     },
     {
       "id": 21,
@@ -334,7 +444,12 @@
       "wikipedia_fa": "سنندج",
       "unsplash_query": "Sanandaj Kurdistan Iran",
       "image": "Sanandaj.png",
-      "slogan": "شهر کردستان، شهر فرهنگ"
+      "slogan": "شهر کردستان، شهر فرهنگ",
+      "is_popular": false,
+      "best_seasons": [
+        "spring"
+      ],
+      "seasonal_tagline": "بهار کردستان رنگارنگه"
     },
     {
       "id": 22,
@@ -350,7 +465,12 @@
       "wikipedia_fa": "خرم‌آباد",
       "unsplash_query": "Khorramabad Iran Falak-ol-Aflak",
       "image": "Khorramabad.png",
-      "slogan": "شهر فلک‌الافلاک، شهر آبشارها"
+      "slogan": "شهر فلک‌الافلاک، شهر آبشارها",
+      "is_popular": true,
+      "best_seasons": [
+        "spring"
+      ],
+      "seasonal_tagline": "آبشار بیشه در اوج بهار"
     },
     {
       "id": 23,
@@ -358,7 +478,7 @@
       "name_en": "Gorgan",
       "province_fa": "گلستان",
       "province_en": "Golestan",
-      "lat": 36.8390,
+      "lat": 36.839,
       "lng": 54.4347,
       "population": 350000,
       "area": 110,
@@ -366,7 +486,13 @@
       "wikipedia_fa": "گرگان",
       "unsplash_query": "Gorgan Iran forest",
       "image": "Gorgan.png",
-      "slogan": "شهر جنگل و خزر"
+      "slogan": "شهر جنگل و خزر",
+      "is_popular": true,
+      "best_seasons": [
+        "spring",
+        "summer"
+      ],
+      "seasonal_tagline": "جنگل و دریا با هم، تابستون عالیه"
     },
     {
       "id": 24,
@@ -382,7 +508,12 @@
       "wikipedia_fa": "ساری",
       "unsplash_query": "Sari Mazandaran Iran",
       "image": "Sari.png",
-      "slogan": "پایتخت مازندران، شهر نارنج"
+      "slogan": "پایتخت مازندران، شهر نارنج",
+      "is_popular": true,
+      "best_seasons": [
+        "summer"
+      ],
+      "seasonal_tagline": "پایتخت مازندران، تابستون شلوغ می‌شه"
     },
     {
       "id": 25,
@@ -398,7 +529,13 @@
       "wikipedia_fa": "قزوین",
       "unsplash_query": "Qazvin Iran historical",
       "image": "Qazvin.png",
-      "slogan": "شهر خطاطی و تاریخ"
+      "slogan": "شهر خطاطی و تاریخ",
+      "is_popular": false,
+      "best_seasons": [
+        "fall",
+        "winter"
+      ],
+      "seasonal_tagline": "بافت تاریخی رو پاییز ببین"
     },
     {
       "id": 26,
@@ -414,7 +551,12 @@
       "wikipedia_fa": "شهرکرد",
       "unsplash_query": "Shahrekord Iran mountains",
       "image": "Shahrekord.png",
-      "slogan": "شهر چهارمحال، پایتخت بام ایران"
+      "slogan": "شهر چهارمحال، پایتخت بام ایران",
+      "is_popular": false,
+      "best_seasons": [
+        "summer"
+      ],
+      "seasonal_tagline": "بام ایران، تابستون خنک"
     },
     {
       "id": 27,
@@ -430,7 +572,12 @@
       "wikipedia_fa": "بوشهر",
       "unsplash_query": "Bushehr Iran Persian Gulf",
       "image": "Bushehr.png",
-      "slogan": "شهر بادگیرها، کنار خلیج"
+      "slogan": "شهر بادگیرها، کنار خلیج",
+      "is_popular": false,
+      "best_seasons": [
+        "winter"
+      ],
+      "seasonal_tagline": "جنوب گرم، زمستون دلچسب‌تره"
     },
     {
       "id": 28,
@@ -446,7 +593,12 @@
       "wikipedia_fa": "بیرجند",
       "unsplash_query": "Birjand South Khorasan Iran",
       "image": "Birjand.png",
-      "slogan": "شهر کویر و زعفران"
+      "slogan": "شهر کویر و زعفران",
+      "is_popular": false,
+      "best_seasons": [
+        "fall"
+      ],
+      "seasonal_tagline": "فصل برداشت زعفران"
     },
     {
       "id": 29,
@@ -462,7 +614,12 @@
       "wikipedia_fa": "ایلام",
       "unsplash_query": "Ilam Iran nature",
       "image": "Ilam.png",
-      "slogan": "شهر طبیعت و کوهستان"
+      "slogan": "شهر طبیعت و کوهستان",
+      "is_popular": false,
+      "best_seasons": [
+        "spring"
+      ],
+      "seasonal_tagline": "طبیعت بکر در بهار"
     },
     {
       "id": 30,
@@ -478,7 +635,13 @@
       "wikipedia_fa": "سمنان",
       "unsplash_query": "Semnan Iran desert",
       "image": "Semnan.png",
-      "slogan": "دروازه کویر، شهر تاریخ"
+      "slogan": "دروازه کویر، شهر تاریخ",
+      "is_popular": false,
+      "best_seasons": [
+        "fall",
+        "winter"
+      ],
+      "seasonal_tagline": "دروازه کویر در پاییز"
     },
     {
       "id": 31,
@@ -494,7 +657,12 @@
       "wikipedia_fa": "ملایر",
       "unsplash_query": "Malayer Iran",
       "image": "Malayer.png",
-      "slogan": "شهر انگور و فرش، شهر تاریخ"
+      "slogan": "شهر انگور و فرش، شهر تاریخ",
+      "is_popular": false,
+      "best_seasons": [
+        "fall"
+      ],
+      "seasonal_tagline": "فصل برداشت انگور"
     }
   ]
 }

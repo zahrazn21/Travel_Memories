@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:travel_memories/models/attraction.dart';
 import 'package:travel_memories/screens/all_attractions_screen.dart';
 import 'package:travel_memories/screens/city_map_screen.dart';
+import 'package:travel_memories/screens/favorites_screen.dart';
 import 'package:travel_memories/services/attractions_service.dart';
 import 'package:travel_memories/services/city_data_service.dart';
 import 'package:travel_memories/services/weather_service.dart';
@@ -11,6 +12,7 @@ import 'package:travel_memories/widgets/attraction_card.dart';
 import 'package:travel_memories/widgets/city_stat_item.dart';
 import 'package:travel_memories/widgets/wave_clipper.dart';
 import 'package:travel_memories/widgets/weather_card.dart';
+import 'package:travel_memories/screens/add_memory_screen.dart';
 
 class AttractionsScreen extends StatefulWidget {
   final Map<String, dynamic> city;
@@ -39,12 +41,6 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
     _loadCityInfo();
   }
 
-  // @override
-  // void dispose() {
-  //   _attractionsService.dispose();
-  //   super.dispose();
-  // }
-
   double get _lat => widget.city['lat'];
   double get _lng => widget.city['lng'];
   String get _cityNameFa => widget.city['name_fa'];
@@ -63,7 +59,11 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
 
   Future<void> _loadAttractions() async {
     try {
-      final results = await _attractionsService.fetchNear(lat: _lat, lng: _lng);
+      final results = await _attractionsService.fetchNear(
+        lat: _lat,
+        lng: _lng,
+        cityKey: _cityNameFa, 
+      );
       if (!mounted) return;
       setState(() {
         _attractions = results;
@@ -101,6 +101,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
           _buildBackgroundGradient(),
           _buildTopImage(),
           _buildTopImageOverlay(),
+          _buildBackButton(),
           SafeArea(
             child: Column(
               children: [
@@ -109,15 +110,14 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
               ],
             ),
           ),
-          _buildBackButton(),
-
+          _buildFavoritesButton(),
         ],
       ),
     );
   }
 
   Widget _buildBackgroundGradient() {
-      final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -158,7 +158,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors:theme.imageShadowColors,
+            colors: theme.imageShadowColors,
           ),
         ),
       ),
@@ -166,97 +166,103 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
   }
 
   Widget _buildContentPanel() {
-  final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
-  return CustomPaint(
-    painter: const WaveBorderPainter(),
-    child: ClipPath(
-      clipper: const WaveClipper(),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: theme.panelBackgroundColors,
+    return CustomPaint(
+      painter: WaveBorderPainter(theme: theme),
+      child: ClipPath(
+        clipper: const WaveClipper(),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: theme.panelBackgroundColors,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 16),
+                  _buildCityTitle(),
+                  const SizedBox(height: 4),
+                  _buildSlogan(),
+                  const SizedBox(height: 10),
+
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildCityStatsRow(),
+                          const SizedBox(height: 10),
+                          if (_cityInfo?['about'] != null) ...[
+                            _buildAboutSection(),
+                            const SizedBox(height: 10),
+                          ],
+                          WeatherCard(weather: _weather),
+                          const SizedBox(height: 14),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _sectionTitle('جاذبه‌های دیدنی'),
+                              TextButton(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => AllAttractionsScreen(
+                                      attractions: _attractions,
+                                      cityName: _cityNameFa,
+                                    ),
+                                  ),
+                                ),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'مشاهده همه',
+                                  style: TextStyle(
+                                    color: theme.travelTextColor[1],
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 8),
+                          _buildAttractionsList(),
+                          const SizedBox(height: 14),
+                          _sectionTitle('موقعیت $_cityNameFa روی نقشه'),
+                          const SizedBox(height: 8),
+                          CityMapWidget(city: widget.city, height: 180),
+                          const SizedBox(height: 16),
+                          _buildAddMemoryButton(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-               child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // بخش ثابت (بدون اسکرول)
-              const SizedBox(height: 16),
-              _buildCityTitle(),
-              const SizedBox(height: 4),
-              _buildSlogan(),
-              const SizedBox(height: 10),
-
-              // بخش اسکرول‌شونده
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildCityStatsRow(),
-                      const SizedBox(height: 10),
-                      if (_cityInfo?['about'] != null) ...[
-                        _buildAboutSection(),
-                        const SizedBox(height: 10),
-                      ],
-                      WeatherCard(weather: _weather),
-                      const SizedBox(height: 14),
-                      _sectionTitle('جاذبه‌های دیدنی'),
-                      TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AllAttractionsScreen(
-                              attractions: _attractions,
-                              cityName: _cityNameFa,
-                            ),
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child:  Text(
-                          'مشاهده همه',
-                          style: TextStyle(
-                            color: theme.travelTextColor[1],
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildAttractionsList(),
-                      const SizedBox(height: 14),
-                      _sectionTitle('موقعیت $_cityNameFa روی نقشه'),
-                      const SizedBox(height: 8),
-                      CityMapWidget(city: widget.city, height: 180),
-                      const SizedBox(height: 16),
-                      _buildAddMemoryButton(),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
-  
-        )
-       ),
-    ),
-  );
-}
- 
+      ),
+    );
+  }
+
   Widget _buildCityTitle() {
-              final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
     return Center(
       child: Row(
@@ -264,11 +270,10 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
         children: [
           Text(
             _cityNameFa,
-            style:  TextStyle(
+            style: TextStyle(
               color: theme.travelTextColor[1],
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              // shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
             ),
           ),
           const SizedBox(width: 8),
@@ -283,12 +288,12 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
   }
 
   Widget _buildSlogan() {
-              final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
     return Text(
       _slogan,
       textAlign: TextAlign.center,
-      style:  TextStyle(
+      style: TextStyle(
         color: theme.textColor,
         fontSize: 13,
         fontWeight: FontWeight.w300,
@@ -297,7 +302,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
   }
 
   Widget _buildCityStatsRow() {
-          final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -332,7 +337,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
   }
 
   Widget _verticalDivider() {
-              final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
     return Container(
       width: 1,
       height: 30,
@@ -341,7 +346,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
   }
 
   Widget _buildAboutSection() {
-          final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -369,7 +374,6 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
             _cityInfo?['about'] ?? '',
             textAlign: TextAlign.right,
             style: TextStyle(
-              
               color: theme.textColor.withOpacity(0.8),
               fontSize: 13,
               height: 1.6,
@@ -381,13 +385,13 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
   }
 
   Widget _sectionTitle(String text) {
-              final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
     return Align(
       alignment: Alignment.centerRight,
       child: Text(
         text,
-        style:  TextStyle(
+        style: TextStyle(
           color: theme.textColor,
           fontSize: 15,
           fontWeight: FontWeight.w600,
@@ -397,14 +401,14 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
   }
 
   Widget _buildAttractionsList() {
-          final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
     return SizedBox(
       height: 200,
       child: Builder(
         builder: (_) {
           if (_isLoadingAttractions) {
-            return  Center(
+            return Center(
               child: CircularProgressIndicator(color: theme.textColor),
             );
           }
@@ -417,7 +421,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
             );
           }
           if (_attractions.isEmpty) {
-            return  Center(
+            return Center(
               child: Text(
                 'جاذبه‌ای پیدا نشد',
                 style: TextStyle(color: theme.textColor),
@@ -426,7 +430,6 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
           }
           return ListView.builder(
             scrollDirection: Axis.horizontal,
-            reverse: true,
             padding: const EdgeInsets.symmetric(vertical: 4),
             itemCount: _attractions.length,
             itemBuilder: (context, index) =>
@@ -456,7 +459,12 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
           border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
         ),
         child: TextButton.icon(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AddMemoryPage()),
+            );
+          },
           icon: const Icon(Icons.edit, color: Colors.white, size: 18),
           label: const Text(
             'ثبت خاطره برای این شهر',
@@ -474,33 +482,63 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
     );
   }
 
-  
-Widget _buildBackButton() {
-            final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+  Widget _buildBackButton() {
+    final theme = Theme.of(context);
 
-  return SafeArea(
-    child: Padding(
-      padding: const EdgeInsets.only(top: 12, left: 12),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: Material(
-          color: theme.textColor.withOpacity(0.35),
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () => Navigator.pop(context),
-            child:  Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Icon(
-                Icons.arrow_back,
-                color: theme.textColor,
-                size: 22,
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 12, right: 12),
+        child: Align(
+          alignment: Alignment.topRight,
+          child: Material(
+            color: theme.primaryColor.withOpacity(0.35),
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => Navigator.pop(context),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Icon(
+                  Icons.arrow_back,
+                  color: theme.primaryColor,
+                  size: 22,
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
+  Widget _buildFavoritesButton() {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 12, left: 12),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            color: theme.primaryColor.withOpacity(0.35),
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Icon(
+                  Icons.favorite,
+                  color: theme.primaryColor,
+                  size: 22,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

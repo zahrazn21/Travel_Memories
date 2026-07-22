@@ -4,51 +4,79 @@ import 'package:travel_memories/models/attraction.dart';
 
 class AttractionsService {
   static const _sparqlEndpoint = 'https://query.wikidata.org/sparql';
-  static const _coordTolerance = 0.15;
-  static const _maxResults = 30;
 
-  /// Fetches nearby attractions for the given coordinates from Wikidata,
-  /// then enriches each result with an image from Wikipedia/Commons.
-  /// Attractions without a resolvable image are skipped.
+  static final Map<String, List<Attraction>> _cache = {};
+
+  static void prefetchCity({
+    required double lat,
+    required double lng,
+    required String cityKey,
+  }) {
+    if (_cache.containsKey(cityKey)) return;
+    AttractionsService().fetchNear(lat: lat, lng: lng, cityKey: cityKey);
+  }
+
+
   Future<List<Attraction>> fetchNear({
-  required double lat,
-  required double lng,
-}) async {
-  final sw = Stopwatch()..start();
+    required double lat,
+    required double lng,
+    String? cityKey, 
+  }) async {
 
-  final bindings = await _queryWikidata(lat: lat, lng: lng);
-  print('⏱ SPARQL query: ${sw.elapsedMilliseconds}ms, ${bindings.length} results');
-  sw.reset();
+    if (cityKey != null && _cache.containsKey(cityKey)) {
+      print('⚡ Data returned instantly from CACHE for: $cityKey');
+      return _cache[cityKey]!;
+    }
 
-  final futures = bindings.map((binding) async {
-    final nameFa = binding['placeLabel']?['value'] as String?;
-    final nameEn = binding['placeAltLabel']?['value'] as String?;
-    if (nameFa == null) return null;
+    final sw = Stopwatch()..start();
 
-    final itemSw = Stopwatch()..start();
-    final image = await _getImage(nameFa: nameFa, nameEn: nameEn ?? '');
-    print('⏱ image for "$nameFa": ${itemSw.elapsedMilliseconds}ms → ${image != null ? "found" : "none"}');
-    
-    if (image == null) return null;
+    final bindings = await _queryWikidata(lat: lat, lng: lng);
 
-    return Attraction(
-      name: nameFa,
-      description: binding['placeDescription']?['value'] as String?,
-      website: binding['website']?['value'] as String?,
-      inceptionYear: _extractYear(binding['inception']?['value']),
-      image: image,
-      lat: double.tryParse(binding['lat']?['value'] ?? ''),
-      lng: double.tryParse(binding['lon']?['value'] ?? ''),
-    );
-  }).toList();
+    final uniqueBindings = <String, dynamic>{};
+    for (var binding in bindings) {
+      final nameFa = binding['placeLabel']?['value'] as String?;
+      if (nameFa != null && !uniqueBindings.containsKey(nameFa)) {
+        uniqueBindings[nameFa] = binding;
+      }
+    }
 
-  final results = await Future.wait(futures);
-  print('⏱ TOTAL: ${sw.elapsedMilliseconds}ms');
-  
-  return results.whereType<Attraction>().toList();
-}
- 
- 
+    print('⏱ SPARQL query: ${sw.elapsedMilliseconds}ms, ${uniqueBindings.length} unique results');
+    sw.reset();
+
+    final futures = uniqueBindings.values.map((binding) async {
+      final nameFa = binding['placeLabel']?['value'] as String?;
+      final nameEn = binding['placeAltLabel']?['value'] as String?;
+      if (nameFa == null) return null;
+
+      final itemSw = Stopwatch()..start();
+      final image = await _getImage(nameFa: nameFa, nameEn: nameEn ?? '');
+      print('⏱ image for "$nameFa": ${itemSw.elapsedMilliseconds}ms → ${image != null ? "found" : "none"}');
+
+      if (image == null) return null;
+
+      return Attraction(
+        name: nameFa,
+        description: binding['placeDescription']?['value'] as String?,
+        website: binding['website']?['value'] as String?,
+        inceptionYear: _extractYear(binding['inception']?['value']),
+        image: image,
+        lat: double.tryParse(binding['lat']?['value'] ?? ''),
+        lng: double.tryParse(binding['lon']?['value'] ?? ''),
+        province: binding['provinceLabel']?['value'] as String?,
+      );
+    }).toList();
+
+    final results = await Future.wait(futures);
+    final attractions = results.whereType<Attraction>().toList();
+    print('⏱ TOTAL: ${sw.elapsedMilliseconds}ms');
+
+    if (cityKey != null && attractions.isNotEmpty) {
+      _cache[cityKey] = attractions;
+    }
+
+    return attractions;
+  }
+
   String? _extractYear(String? isoDate) {
     if (isoDate == null || isoDate.length < 4) return null;
     return isoDate.substring(0, 4);
@@ -58,45 +86,8 @@ class AttractionsService {
     required double lat,
     required double lng,
   }) async {
-//     final query =
-//           '''
-// SELECT DISTINCT ?place ?placeLabel ?placeAltLabel ?placeDescription 
-// ?lat ?lon ?inception ?website WHERE {
-//   VALUES ?rootType {
-//     wd:Q2065736   # tourist attraction
-//     wd:Q4989906   # monument
-//     wd:Q839954    # archaeological site
-//     wd:Q23413     # castle / fortress
-//     wd:Q12518     # tower
-//     wd:Q2319498   # landmark
-//     wd:Q33506     # museum
-//     wd:Q16560     # palace
-//     wd:Q8502      # mountain
-//     wd:Q23397     # lake
-//     wd:Q34038     # waterfall
-//     wd:Q473972    # protected area
-//     wd:Q22698     # park / garden
-//   }
-//   ?place wdt:P17 wd:Q794 .
-//   ?place wdt:P625 ?coord .
-//   ?place wdt:P31 ?type .
-//   ?type wdt:P279* ?rootType .
-//   BIND(geof:longitude(?coord) AS ?lon)
-//   BIND(geof:latitude(?coord) AS ?lat)
-//   FILTER(ABS(?lat - $lat) < 0.15 && ABS(?lon - $lng) < 0.15)
-//   OPTIONAL { ?place wdt:P571 ?inception }
-//   OPTIONAL { ?place wdt:P856 ?website }
-//   SERVICE wikibase:label { 
-//     bd:serviceParam wikibase:language "fa,en" . 
-//     ?place rdfs:label ?placeLabel .
-//     ?place skos:altLabel ?placeAltLabel .
-//     ?place schema:description ?placeDescription .
-//   }
-// } LIMIT 60
-// ''';
-
-final query = '''
-SELECT DISTINCT ?place ?placeLabel ?placeDescription ?lat ?lon ?sitelinks WHERE {
+    final query = '''
+SELECT ?place ?placeLabel ?placeDescription ?lat ?lon ?sitelinks (SAMPLE(?provLabel) AS ?provinceLabel) WHERE {
   SERVICE wikibase:around {
     ?place wdt:P625 ?coord .
     bd:serviceParam wikibase:center "Point($lng $lat)"^^geo:wktLiteral .
@@ -143,14 +134,23 @@ SELECT DISTINCT ?place ?placeLabel ?placeDescription ?lat ?lon ?sitelinks WHERE 
 
   ?place wikibase:sitelinks ?sitelinks .
   FILTER(?sitelinks >= 2)
+  
+  OPTIONAL {
+    ?place wdt:P131* ?province .
+    ?province wdt:P31/wdt:P279* wd:Q1344695 .
+    ?province rdfs:label ?provLabel .
+    FILTER(LANG(?provLabel) = "fa")
+  }
 
   SERVICE wikibase:label { 
     bd:serviceParam wikibase:language "fa,en" .
   }
 }
+GROUP BY ?place ?placeLabel ?placeDescription ?lat ?lon ?sitelinks
 ORDER BY DESC(?sitelinks)
 LIMIT 80
 ''';
+
     final response = await http.post(
       Uri.parse(_sparqlEndpoint),
       headers: {
@@ -168,8 +168,7 @@ LIMIT 80
     return data['results']?['bindings'] as List? ?? [];
   }
 
-  /// Tries, in order: English Wikipedia -> Farsi Wikipedia ->
-  /// English Commons search -> Farsi Commons search.
+
   Future<String?> _getImage({
     required String nameFa,
     required String nameEn,

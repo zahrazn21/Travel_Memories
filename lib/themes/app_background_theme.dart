@@ -56,7 +56,7 @@ class AppBackgroundTheme extends ThemeExtension<AppBackgroundTheme> {
       memoryTextColor: t < 0.5 ? memoryTextColor : other.memoryTextColor,
       textColor: t < 0.5 ? textColor : other.textColor,
       imageShadowColors: t < 0.5 ? imageShadowColors : other.imageShadowColors, 
-      panelBackgroundColors: t < 0.5 ? panelBackgroundColors : other.panelBackgroundColors, // 👈 اضافه شد
+      panelBackgroundColors: t < 0.5 ? panelBackgroundColors : other.panelBackgroundColors, 
     );
       }
 }

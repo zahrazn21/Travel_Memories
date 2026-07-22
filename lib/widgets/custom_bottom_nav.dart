@@ -20,14 +20,14 @@ class CustomBottomNav extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: menuTheme.borderColor,
+          color: menuTheme.boxShadowColor.withOpacity(0.5),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: menuTheme.shadowColor.withOpacity(0.8),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: menuTheme.shadowColor.withOpacity(1),
+            blurRadius: 0,
+            offset: const Offset(0, 0),
           ),
         ],
       ),
@@ -89,6 +89,7 @@ class CustomBottomNav extends StatelessWidget {
       onTap: onTap,
       child: SizedBox(
         height: 70,
+        
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -106,7 +107,7 @@ class CustomBottomNav extends StatelessWidget {
                     : null,
                 border: Border.all(
                   color: isSelected
-                      ? menuTheme.boxShadowColor.withOpacity(0.7)
+                      ? menuTheme.boxShadowColor.withOpacity(0.6)
                       : Colors.transparent,
                   width: 1,
                 ),

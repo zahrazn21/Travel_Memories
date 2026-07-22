@@ -26,7 +26,6 @@ class WikiService {
       final results = data['query']?['search'] as List?;
       if (results == null || results.isEmpty) return null;
 
-      // اسم فایل رو بگیر
       final title = results[0]['title'] as String;
       return await _getCommonsImageUrl(title);
     } catch (_) {}

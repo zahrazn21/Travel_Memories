@@ -2,12 +2,22 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:travel_memories/models/attraction.dart';
 import 'package:travel_memories/screens/attraction_detail_screen.dart';
+import 'package:travel_memories/services/favorites_service.dart';
 
 class AttractionCard extends StatelessWidget {
   final Attraction attraction;
+  final double? width;
+  final double? height;
+  final bool showFavoriteButton; 
 
-  const AttractionCard({super.key, required this.attraction});
-
+ const AttractionCard({
+    super.key,
+    required this.attraction,
+    this.width,
+    this.height,
+    this.showFavoriteButton = true, 
+  });
+  
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -66,6 +76,38 @@ class AttractionCard extends StatelessWidget {
                     ),
                   ),
                 ),
+
+                 if (showFavoriteButton)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: AnimatedBuilder(
+                      animation: FavoritesService.instance,
+                      builder: (context, _) {
+                        final isFav =
+                            FavoritesService.instance.isFavorite(attraction);
+                        return GestureDetector(
+                          onTap: () =>
+                              FavoritesService.instance.toggle(attraction),
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.35),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isFav ? Icons.favorite : Icons.favorite_border,
+                              color: isFav
+                                  ? const Color.fromARGB(255, 255, 60, 125)
+                                  : Colors.white,
+                              size: 16,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -96,7 +138,7 @@ class AttractionCard extends StatelessWidget {
                           ),
                         ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(

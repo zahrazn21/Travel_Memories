@@ -29,7 +29,7 @@ class AppMenuTheme extends ThemeExtension<AppMenuTheme> {
       borderColor: borderColor ?? this.borderColor,
       shadowColor: shadowColor ?? this.shadowColor,
       textColor: textColor ?? this.textColor,
-      boxShadowColor: boxShadowColor ?? this.boxShadowColor, // 👈 اضافه شد
+      boxShadowColor: boxShadowColor ?? this.boxShadowColor, 
     );
   }
 
@@ -41,7 +41,7 @@ class AppMenuTheme extends ThemeExtension<AppMenuTheme> {
       borderColor: t < 0.5 ? borderColor : other.borderColor,
       shadowColor: t < 0.5 ? shadowColor : other.shadowColor,
       textColor: t < 0.5 ? textColor : other.textColor,
-      boxShadowColor: t < 0.5 ? boxShadowColor : other.boxShadowColor, // 👈 اضافه شد
+      boxShadowColor: t < 0.5 ? boxShadowColor : other.boxShadowColor,
     );
   }
 }

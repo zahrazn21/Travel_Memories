@@ -1,12 +1,17 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter/services.dart';
-import 'package:travel_memories/screens/attractions_screen.dart';
-import 'dart:ui';
 
+import 'package:travel_memories/screens/all_cities_screen.dart';
+import 'package:travel_memories/screens/attractions_screen.dart';
+import 'package:travel_memories/screens/search_screen.dart';
+import 'package:travel_memories/services/attractions_service.dart'; 
 import 'package:travel_memories/themes/app_background_theme.dart';
+import 'package:travel_memories/widgets/city_weather_card.dart';
+import 'package:travel_memories/widgets/seasonal_pick_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.title});
@@ -19,39 +24,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> _attractions = [];
-  List<dynamic> cities = [];
+  List<Map<String, dynamic>> _cities = [];
 
-  bool _isLoading = true;
+  final Map<String, Map<String, dynamic>?> _weatherByCity = {};
+  final Set<String> _pendingWeather = {};
+
+  bool _isLoadingAttractions = true;
+  bool _isLoadingCities = true;
   String _errorMessage = '';
-  String getWeatherText(int code) {
-    switch (code) {
-      case 0:
-        return 'آفتابی';
-      case 1:
-      case 2:
-      case 3:
-        return 'نیمه ابری';
-      case 45:
-      case 48:
-        return 'مه';
-      case 51:
-      case 53:
-      case 55:
-        return 'نم نم باران';
-      case 61:
-      case 63:
-      case 65:
-        return 'بارانی';
-      case 71:
-      case 73:
-      case 75:
-        return 'برفی';
-      case 95:
-        return 'رعد و برق';
-      default:
-        return 'نامشخص';
-    }
-  }
+  String _citiesError = '';
 
   static String get apiKey => dotenv.env['API_KEY'] ?? '';
   static String get baseUrl => dotenv.env['BASE_URL'] ?? '';
@@ -65,73 +46,99 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> fetchAttractions() async {
     setState(() {
-      _isLoading = true;
+      _isLoadingAttractions = true;
       _errorMessage = '';
     });
 
     try {
       final url = Uri.parse('$baseUrl&apiKey=$apiKey');
-
-      print(apiKey);
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final features = data['features'] as List? ?? [];
-
+        if (!mounted) return;
         setState(() {
           _attractions = features;
-          _isLoading = false;
+          _isLoadingAttractions = false;
         });
       } else {
+        if (!mounted) return;
         setState(() {
-          _isLoading = false;
+          _isLoadingAttractions = false;
           _errorMessage = 'خطا: ${response.statusCode}';
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _isLoading = false;
-        _errorMessage = 'خطا در ارتباط: $e';
+        _isLoadingAttractions = false;
+        _errorMessage = 'خطا در ارتباط';
       });
     }
   }
 
-Future<void> loadCities() async {
-  try {
-    final String response = await rootBundle.loadString('data/cities.json');
-    final data = json.decode(response);
-    final loadedCities = data['cities'] as List;
-
-    await Future.wait(loadedCities.map((city) async {
-      final weather = await getWeather(city['lat'], city['lng']);
-      city['weather'] = weather;
-    }));
-
+  Future<void> loadCities() async {
     setState(() {
-      cities = loadedCities;
+      _isLoadingCities = true;
+      _citiesError = '';
     });
-  } catch (e) {
-    print("ERROR => $e");
-  }
-}
-  IconData getWeatherIcon(int code) {
-    switch (code) {
-      case 1:
-        return Icons.wb_sunny_outlined; // آفتابی
-      case 2:
-        return Icons.wb_cloudy_outlined; // نیمه ابری
-      case 3:
-        return Icons.cloud_outlined; // ابری
-      case 4:
-        return Icons.grain; // بارانی
-      case 5:
-        return Icons.ac_unit; // برفی
-      case 6:
-        return Icons.foggy; // مه‌آلود
-      default:
-        return Icons.wb_sunny_outlined;
+
+    try {
+      final String response = await rootBundle.loadString('data/cities.json');
+      final data = json.decode(response);
+      final loadedCities = List<Map<String, dynamic>>.from(data['cities']);
+
+      if (!mounted) return;
+      setState(() {
+        _cities = loadedCities;
+        _isLoadingCities = false;
+      });
+
+      for (final city in loadedCities) {
+        _loadWeatherFor(city);
+      }
+
+      _prefetchImportantCities(loadedCities);
+
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingCities = false;
+        _citiesError = 'مشکلی در بارگذاری شهرها پیش اومد';
+      });
     }
+  }
+
+  void _prefetchImportantCities(List<Map<String, dynamic>> cities) {
+    final currentSeason = _currentSeasonKey();
+    
+    final priorityCities = cities.where((c) {
+      final isPopular = c['is_popular'] == true;
+      final isSeasonal = (c['best_seasons'] as List?)?.contains(currentSeason) ?? false;
+      return isPopular || isSeasonal;
+    }).take(8); 
+
+    for (var city in priorityCities) {
+      AttractionsService.prefetchCity(
+        lat: (city['lat'] as num).toDouble(),
+        lng: (city['lng'] as num).toDouble(),
+        cityKey: city['name_fa'] as String,
+      );
+    }
+  }
+
+  Future<void> _loadWeatherFor(Map<String, dynamic> city) async {
+    final name = city['name_fa'] as String;
+    setState(() => _pendingWeather.add(name));
+
+    final weather = await getWeather(city['lat'], city['lng']);
+
+    if (!mounted) return;
+    setState(() {
+      _weatherByCity[name] = weather;
+      _pendingWeather.remove(name);
+    });
   }
 
   Future<Map<String, dynamic>?> getWeather(double lat, double lon) async {
@@ -144,296 +151,121 @@ Future<void> loadCities() async {
       );
 
       final response = await http.get(url);
+      if (response.statusCode != 200) return null;
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
+      final current = data['current'];
 
-        final current = data['current'];
-
-        return {
-          'temp': current['temperature_2m'],
-          'humidity': current['relative_humidity_2m'],
-          'wind': current['wind_speed_10m'],
-          'weatherCode': current['weather_code'],
-        };
-      }
-
-      return null;
+      return {
+        'temp': current['temperature_2m'],
+        'humidity': current['relative_humidity_2m'],
+        'wind': current['wind_speed_10m'],
+        'weatherCode': current['weather_code'],
+      };
     } catch (e) {
-      print('Weather Error: $e');
       return null;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-      final bgTheme = Theme.of(context).extension<AppBackgroundTheme>()!; // این خط باید باشه
+    final bgTheme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
     return Scaffold(
       body: Stack(
         children: [
-          // Container(
-          //   height: MediaQuery.of(context).size.height,
-          //   width: MediaQuery.of(context).size.width,
-          //   decoration: const BoxDecoration(
-          //     image: DecorationImage(
-          //       image: AssetImage("images/darkTheme.png"),
-          //       fit: BoxFit.cover,
-          //       alignment: Alignment.topCenter,
-          //     ),
-          //   ),
-          // ),
-      
-           Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: bgTheme.gradientColors,
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: bgTheme.gradientColors,
+              ),
             ),
           ),
-        ),
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: SizedBox(
-            width: double.infinity,
-            height: 400,
-            child: Image.asset(
-              bgTheme.backgroundImage,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: const Color(0xFF1A1A3E),
-                child: const Icon(
-                  Icons.image_not_supported,
-                  color: Colors.white54,
-                  size: 60,
+          Positioned(
+            top: -80,
+            left: 0,
+            right: 0,
+            child: SizedBox(
+              width: double.infinity,
+              height: 380,
+              child: Image.asset(
+                bgTheme.backgroundImage,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: const Color(0xFF1A1A3E),
+                  child: const Icon(
+                    Icons.image_not_supported,
+                    color: Colors.white54,
+                    size: 60,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Container(
-              width: double.infinity, 
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 28),
-                  ShaderMask(
-                    shaderCallback: (bounds) =>  LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: bgTheme.travelTextColor,
-                    ).createShader(bounds),
-                    child: const Text(
-                      ' سفر کن',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 6,
-                            color: Colors.black12,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 2),
-                  ShaderMask(
-                    shaderCallback: (bounds) =>  LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: bgTheme.memoryTextColor,
-                    ).createShader(bounds),
-                    child: const Text(
-                      ' خاطره بساز',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 8,
-                            color: Colors.black12,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 2),
-
-                  ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.white, Colors.white70],
-                    ).createShader(bounds),
-                    child:  Text(
-                      '...هر سفر یک خاطره جدید',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: bgTheme.textColor,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 4,
-                            color: Colors.black12,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: _Header(bgTheme: bgTheme),
           ),
-
           SafeArea(
             child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.only(
-                    top: 200,
-                    left: 80, 
-                    right: 80,
-                    bottom: 16,
+                    top: 140,
+                    left: 100,
+                    right: 100,
+                    bottom: 10,
                   ),
+                  child: _SearchBar(bgTheme: bgTheme),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(12),
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                      filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
                       child: Container(
-                        decoration: BoxDecoration(
-                          color: bgTheme.textColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: bgTheme.textColor.withOpacity(0.3),
-                            width: 1.5,
-                          ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 5,
                         ),
-                        child: TextField(
-                          textAlign:
-                              TextAlign.right,
-                          style:  TextStyle(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.28),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          '✨هر سفر یک خاطره جدید',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
                             color: Colors.white,
-                            fontSize: 16,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: ' ...جستجوی شهر',
-                            hintStyle: TextStyle(
-                              color: bgTheme.textColor.withOpacity(0.6),
-                            ),
-                            prefixIcon: Padding(
-                              padding: const EdgeInsets.only(
-                                right: 8,
-                              ), 
-                              child: Icon(
-                                Icons.search,
-                                color: bgTheme.textColor.withOpacity(0.8),
-                                size: 22,
-                              ),
-                            ),
-                            prefixIconConstraints: const BoxConstraints(
-                              minWidth: 40,
-                            ),
-                            filled: true,
-                            fillColor: const Color.fromARGB(0, 155, 151, 151),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20, 
-                              vertical: 12,
-                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-                // Expanded(
-                //   child: _isLoading
-                //       ? const Center(child: CircularProgressIndicator())
-                //       : _errorMessage.isNotEmpty
-                //       ? Center(
-                //           child: Text(
-                //             _errorMessage,
-                //             style: const TextStyle(color: Colors.white),
-                //           ),
-                //         )
-                //       : ListView.builder(
-                //           padding: const EdgeInsets.symmetric(horizontal: 16),
-                //           itemCount: _attractions.length,
-                //           itemBuilder: (context, index) {
-                //             final item = _attractions[index];
-                //             final props = item['properties'] ?? {};
-
-                //             return Card(
-                //               margin: const EdgeInsets.only(bottom: 12),
-
-                //               shape: RoundedRectangleBorder(
-                //                 borderRadius: BorderRadius.circular(16),
-                //               ),
-
-                //               child: ListTile(
-                //                 leading: const CircleAvatar(
-                //                   child: Icon(Icons.location_city),
-                //                 ),
-
-                //                 title: Text(props['name'] ?? 'بدون نام'),
-
-                //                 subtitle: Text(
-                //                   props['formatted'] ?? '',
-                //                   maxLines: 2,
-                //                   overflow: TextOverflow.ellipsis,
-                //                 ),
-
-                //                 trailing: const Icon(
-                //                   Icons.arrow_forward_ios,
-                //                   size: 16,
-                //                 ),
-                //               ),
-                //             );
-                //           },
-                //         ),
-                // ),
-                const SizedBox(height: 120),
+                const SizedBox(height: 40),
                 Expanded(
                   child: ClipRRect(
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
                     ),
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(
-                        sigmaX: 12.0, // بلر بیشتر
-                        sigmaY: 12.0,
-                      ),
+                      filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
                       child: Container(
                         decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.08),
                           borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(20),
-                            topRight: Radius.circular(20),
+                            topLeft: Radius.circular(24),
+                            topRight: Radius.circular(24),
                           ),
-                          // gradient: LinearGradient(
-                          //   begin: Alignment.topCenter,
-                          //   end: Alignment.bottomCenter,
-                          //   colors: bgTheme.gradientColors,
-                          // ),
                           border: Border(
                             top: BorderSide(
                               color: bgTheme.borderColor,
@@ -441,377 +273,7 @@ Future<void> loadCities() async {
                             ),
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 0.2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      // color: Colors.white.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: bgTheme.textColor.withOpacity(0.2),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: TextButton(
-                                      onPressed: () {
-                                      },
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: bgTheme.textColor,
-                                        padding: EdgeInsets.zero,
-                                      ),
-                                      child: const Text(
-                                        'مشاهده همه',
-                                        style: TextStyle(
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                   Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 5,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          'شهرهای ایران',
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: bgTheme.textColor,
-                                          ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Icon(
-                                          Icons.place,
-                                          color: Colors.red,
-                                          size: 20,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            Expanded(
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  // gradient: LinearGradient(
-                                  //   begin: Alignment.topCenter,
-                                  //   end: Alignment.bottomCenter,
-                                  //   colors: [
-                                  //     Color.fromARGB(255, 7, 4, 48),
-                                  //     Color.fromARGB(255, 19, 10, 107),
-                                  //   ],
-                                  // ),
-                                ),
-                                child: ListView.builder(
-                                  scrollDirection: Axis.horizontal,
-                                    reverse: true,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 12,
-                                  ),
-                                  itemCount: cities.length,
-                                  itemBuilder: (context, index) {
-                                    final city = cities[index];
-                                    final weather = city['weather'];
-
-                                    return SizedBox(
-                                      width: 130,
-                                      height: 60,
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 3,
-                                          vertical: 3,
-                                        ),
-                                        child: InkWell(
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                          splashColor: Colors.orange
-                                              .withOpacity(0.1),
-                                          highlightColor: Colors.orange
-                                              .withOpacity(0.05),
-                                          onTap: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    AttractionsScreen(
-                                                      city: city,
-                                                    ),
-                                              ),
-                                            );
-                                          },
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(14),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.grey
-                                                      .withOpacity(0.15),
-                                                  blurRadius: 6,
-                                                  offset: const Offset(0, 2),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Stack(
-                                              fit: StackFit.expand,
-                                              children: [
-                                                ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(14),
-                                                  child: Image.asset(
-                                                    "images/cities/${city['image']}",
-                                                    width: double.infinity,
-                                                    height: double.infinity,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (
-                                                          context,
-                                                          error,
-                                                          stackTrace,
-                                                        ) => Container(
-                                                          color: Colors
-                                                              .grey
-                                                              .shade300,
-                                                          child: const Icon(
-                                                            Icons.broken_image,
-                                                            size: 40,
-                                                            color: Colors.grey,
-                                                          ),
-                                                        ),
-                                                  ),
-                                                ),
-
-                                                Positioned(
-                                                  bottom: 0,
-                                                  left: 0,
-                                                  right: 0,
-                                                  child: ClipRRect(
-                                                    borderRadius:
-                                                        const BorderRadius.only(
-                                                          bottomLeft:
-                                                              Radius.circular(
-                                                                14,
-                                                              ),
-                                                          bottomRight:
-                                                              Radius.circular(
-                                                                14,
-                                                              ),
-                                                          topLeft:
-                                                              Radius.circular(
-                                                                20,
-                                                              ),
-                                                          topRight:
-                                                              Radius.circular(
-                                                                20,
-                                                              ),
-                                                        ),
-                                                    child: BackdropFilter(
-                                                      filter: ImageFilter.blur(
-                                                        sigmaX: 6.0,
-                                                        sigmaY: 6.0,
-                                                      ),
-                                                      child: Container(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal: 8,
-                                                              vertical: 6,
-                                                            ),
-                                                        decoration: BoxDecoration(
-                                                          gradient: LinearGradient(
-                                                            begin: Alignment
-                                                                .topCenter,
-                                                            end: Alignment
-                                                                .bottomCenter,
-                                                            colors: [
-                                                              Colors.black
-                                                                  .withOpacity(
-                                                                    0.2,
-                                                                  ),
-                                                              Colors.black
-                                                                  .withOpacity(
-                                                                    0.7,
-                                                                  ),
-                                                            ],
-                                                            stops: const [
-                                                              0.0,
-                                                              1.0,
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        child: Column(
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .end,
-                                                          mainAxisSize:
-                                                              MainAxisSize.min,
-                                                          children: [
-                                                            Text(
-                                                              city['name_fa'],
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .right,
-                                                              style: const TextStyle(
-                                                                fontSize: 13,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                color: Colors
-                                                                    .white,
-                                                                shadows: [
-                                                                  Shadow(
-                                                                    blurRadius:
-                                                                        3,
-                                                                    color: Colors
-                                                                        .black26,
-                                                                    offset:
-                                                                        Offset(
-                                                                          0,
-                                                                          1,
-                                                                        ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                              maxLines: 1,
-                                                            ),
-
-                                                            const SizedBox(
-                                                              height: 3,
-                                                            ),
-
-                                                            Row(
-                                                              mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .end,
-                                                              children: [
-                                                                Text(
-                                                                  '${weather?['temp'] ?? '--'}°',
-                                                                  style: const TextStyle(
-                                                                    fontSize:
-                                                                        16,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    color: Colors
-                                                                        .white,
-                                                                    shadows: [
-                                                                      Shadow(
-                                                                        blurRadius:
-                                                                            3,
-                                                                        color: Colors
-                                                                            .black26,
-                                                                        offset:
-                                                                            Offset(
-                                                                              0,
-                                                                              1,
-                                                                            ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  width: 40,
-                                                                ), 
-                                                                Icon(
-                                                                  weather !=
-                                                                          null
-                                                                      ? getWeatherIcon(
-                                                                          weather['weatherCode'],
-                                                                        )
-                                                                      : Icons
-                                                                            .wb_sunny_outlined,
-                                                                  size: 16,
-                                                                  color: Colors
-                                                                      .white,
-                                                                  shadows: const [
-                                                                    Shadow(
-                                                                      blurRadius:
-                                                                          3,
-                                                                      color: Colors
-                                                                          .black26,
-                                                                      offset:
-                                                                          Offset(
-                                                                            0,
-                                                                            1,
-                                                                          ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ],
-                                                            ),
-
-                                                            const SizedBox(
-                                                              height: 2,
-                                                            ),
-
-                                                            Text(
-                                                              weather != null
-                                                                  ? getWeatherText(
-                                                                      weather['weatherCode'],
-                                                                    )
-                                                                  : 'در حال دریافت...',
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .right,
-                                                              style: const TextStyle(
-                                                                color: Colors
-                                                                    .white70,
-                                                                fontSize: 10,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w400,
-                                                              ),
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                              maxLines: 1,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 80),
-                          ],
-                        ),
+                        child: _buildPanelBody(bgTheme),
                       ),
                     ),
                   ),
@@ -819,6 +281,375 @@ Future<void> loadCities() async {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  static const List<String> _seasonalTaglines = [
+    'هوای عالی برای این روزها',
+    'مقصد داغ این فصل',
+    'کمتر دیده شده، بیشتر لذت‌بخش',
+    'بهترین وقت سفر بهش الان‌ه',
+  ];
+
+  String _currentSeasonKey() {
+    final month = DateTime.now().month;
+    if (month >= 3 && month <= 5) return 'spring';
+    if (month >= 6 && month <= 8) return 'summer';
+    if (month >= 9 && month <= 11) return 'fall';
+    return 'winter';
+  }
+
+  Widget _buildPanelBody(AppBackgroundTheme bgTheme) {
+    if (_isLoadingCities) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white70),
+      );
+    }
+
+    if (_citiesError.isNotEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.wifi_off_rounded,
+              color: bgTheme.textColor.withOpacity(0.6),
+            ),
+            const SizedBox(height: 8),
+            Text(_citiesError, style: TextStyle(color: bgTheme.textColor)),
+            const SizedBox(height: 8),
+            TextButton(onPressed: loadCities, child: const Text('تلاش دوباره')),
+          ],
+        ),
+      );
+    }
+
+    if (_cities.isEmpty) {
+      return Center(
+        child: Text(
+          'شهری برای نمایش وجود نداره',
+          style: TextStyle(color: bgTheme.textColor),
+        ),
+      );
+    }
+
+    final currentSeason = _currentSeasonKey();
+    var seasonal = _cities
+        .where(
+          (c) => (c['best_seasons'] as List?)?.contains(currentSeason) ?? false,
+        )
+        .toList();
+    if (seasonal.isEmpty) seasonal = _cities.take(4).toList();
+
+    final popular = _cities.where((c) => c['is_popular'] == true).toList();
+
+    final bottomSafePadding = MediaQuery.of(context).padding.bottom + 90;
+
+    return ListView(
+      padding: EdgeInsets.only(bottom: bottomSafePadding),
+      children: [
+        _CitiesHeader(
+          bgTheme: bgTheme,
+          title: 'شهرهای ایران',
+          icon: Icons.place,
+          iconColor: Colors.red,
+          onSeeAll: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AllCitiesScreen(cities: _cities),
+            ),
+          ),
+        ),
+        SizedBox(height: 230, child: _buildCitiesRow(_cities)),
+
+        const SizedBox(height: 12),
+        _CitiesHeader(
+          bgTheme: bgTheme,
+          title: 'پیشنهاد این فصل',
+          icon: Icons.wb_sunny_rounded,
+          iconColor: Colors.orangeAccent,
+          onSeeAll: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AllCitiesScreen(cities: seasonal),
+            ),
+          ),
+        ),
+        SizedBox(height: 200, child: _buildSeasonalRow(seasonal)),
+
+        const SizedBox(height: 12),
+        _CitiesHeader(
+          bgTheme: bgTheme,
+          title: 'شهرهای محبوب',
+          icon: Icons.favorite_rounded,
+          iconColor: Colors.pinkAccent,
+          onSeeAll: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AllCitiesScreen(cities: popular),
+            ),
+          ),
+        ),
+        SizedBox(height: 230, child: _buildCitiesRow(popular)),
+      ],
+    );
+  }
+
+  Widget _buildCitiesRow(List<Map<String, dynamic>> cities) {
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      itemCount: cities.length,
+      itemBuilder: (context, index) {
+        final city = cities[index];
+        final name = city['name_fa'] as String;
+
+        return Listener(
+          onPointerDown: (_) {
+            AttractionsService.prefetchCity(
+              lat: (city['lat'] as num).toDouble(),
+              lng: (city['lng'] as num).toDouble(),
+              cityKey: name,
+            );
+          },
+          child: CityWeatherCard(
+            city: city,
+            weather: _weatherByCity[name],
+            isLoadingWeather: _pendingWeather.contains(name),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AttractionsScreen(city: city),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSeasonalRow(List<Map<String, dynamic>> cities) {
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      itemCount: cities.length,
+      itemBuilder: (context, index) {
+        final city = cities[index];
+        final name = city['name_fa'] as String;
+
+        return Listener(
+          // 🔹 به محض شروع فشردن کارت، دانلود سریعاً شروع می‌شود
+          onPointerDown: (_) {
+            AttractionsService.prefetchCity(
+              lat: (city['lat'] as num).toDouble(),
+              lng: (city['lng'] as num).toDouble(),
+              cityKey: name,
+            );
+          },
+          child: SeasonalPickCard(
+            city: city,
+            weather: _weatherByCity[name],
+            isLoadingWeather: _pendingWeather.contains(name),
+            tagline:
+                (city['seasonal_tagline'] as String?) ??
+                _seasonalTaglines[index % _seasonalTaglines.length],
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AttractionsScreen(city: city),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  final AppBackgroundTheme bgTheme;
+  const _Header({required this.bgTheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 28),
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: bgTheme.travelTextColor,
+            ).createShader(bounds),
+            child: const Text(
+              'سفر کن',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    blurRadius: 6,
+                    color: Colors.black12,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 2),
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: bgTheme.memoryTextColor,
+            ).createShader(bounds),
+            child: const Text(
+              'خاطره بساز',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    blurRadius: 8,
+                    color: Colors.black12,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchBar extends StatelessWidget {
+  final AppBackgroundTheme bgTheme;
+  const _SearchBar({required this.bgTheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SearchScreen()),
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: bgTheme.textColor.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: bgTheme.textColor.withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.search,
+                  color: bgTheme.textColor.withOpacity(0.8),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '...جستجوی شهر',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: bgTheme.textColor.withOpacity(0.6),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CitiesHeader extends StatelessWidget {
+  final AppBackgroundTheme bgTheme;
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback? onSeeAll;
+
+  const _CitiesHeader({
+    required this.bgTheme,
+    required this.title,
+    required this.icon,
+    required this.iconColor,
+    this.onSeeAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: bgTheme.textColor,
+                ),
+              ),
+            ],
+          ),
+
+          if (onSeeAll != null)
+            TextButton(
+              onPressed: onSeeAll,
+              style: TextButton.styleFrom(
+                foregroundColor: bgTheme.textColor,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: bgTheme.textColor.withOpacity(0.2)),
+                ),
+              ),
+              child: const Text(
+                'مشاهده همه',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              ),
+            )
+          else
+            const SizedBox.shrink(),
         ],
       ),
     );

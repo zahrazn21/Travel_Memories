@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:travel_memories/models/attraction.dart';
 import 'package:travel_memories/screens/attraction_detail_screen.dart';
+import 'package:travel_memories/themes/app_background_theme.dart';
 
 class AllAttractionsScreen extends StatefulWidget {
   final List<Attraction> attractions;
@@ -30,26 +31,28 @@ class _AllAttractionsScreenState extends State<AllAttractionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+        final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF01081D),
+      backgroundColor: theme.gradientColors[1],
       appBar: AppBar(
-        backgroundColor: const Color(0xFF01081D),
+        backgroundColor:theme.gradientColors[2],
         elevation: 0,
         title: Text(
           'جاذبه‌های ${widget.cityName}',
-          style: const TextStyle(color: Colors.white, fontSize: 17),
+          style:  TextStyle(color: theme.textColor, fontSize: 17),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme:  IconThemeData(color: theme.textColor),
       ),
       body: Column(
         children: [
           _buildSearchField(),
           Expanded(
             child: _filtered.isEmpty
-                ? const Center(
+                ?  Center(
                     child: Text(
                       'جاذبه‌ای پیدا نشد',
-                      style: TextStyle(color: Colors.white70),
+                      style: TextStyle(color: theme.textColor),
                     ),
                   )
                 : _buildGrid(),
@@ -60,18 +63,20 @@ class _AllAttractionsScreenState extends State<AllAttractionsScreen> {
   }
 
   Widget _buildSearchField() {
+            final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: TextField(
         textAlign: TextAlign.right,
-        style: const TextStyle(color: Colors.white),
+        style:  TextStyle(color: theme.textColor),
         onChanged: (value) => setState(() => _query = value),
         decoration: InputDecoration(
-          hintText: 'جستجوی جاذبه...',
-          hintStyle: const TextStyle(color: Colors.white38),
-          prefixIcon: const Icon(Icons.search, color: Colors.white38),
+          hintText: ' ...جستحوی جاذبه ',
+          hintStyle:  TextStyle(color: theme.textColor),
+          prefixIcon:  Icon(Icons.search, color: theme.textColor),
           filled: true,
-          fillColor: Colors.white.withOpacity(0.06),
+          fillColor: theme.textColor.withOpacity(0.06),
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -162,7 +167,7 @@ class AttractionGridCard extends StatelessWidget {
       ),
     ),
     child: Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(

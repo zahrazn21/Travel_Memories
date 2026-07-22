@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:travel_memories/themes/app_background_theme.dart';
 
-/// A small "icon + value + label" column, e.g. population, area, province.
 class CityStatItem extends StatelessWidget {
   final String label;
   final String value;
