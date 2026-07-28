@@ -52,7 +52,10 @@ dependencies:
   # hive: ^2.2.3
   flutter_localizations:
     sdk: flutter  
-    
+  cached_network_image: ^3.3.0
+  flutter_cache_manager: ^3.3.0 
+  flutter_launcher_icons: ^0.14.3
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -64,6 +67,11 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "images/iconApp.png"
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -136,16 +144,12 @@ flutter:
   
   # To add assets to your application, add an assets section, like this:
   assets:
-    - images/2.png
-    - images/bg2.png
-    - images/3.png
-    - images/bg.jpg
     - .env
     - data/cities.json
     - images/cities/
     - images/
-    - images/mask.jpg
   #   - images/a_dot_ham.jpeg
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
