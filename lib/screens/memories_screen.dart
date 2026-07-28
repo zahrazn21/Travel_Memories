@@ -765,11 +765,7 @@ class _MemoryCard extends StatelessWidget {
                               isFavorite: isFavorite,
                               color: accentColor,
                               onTap: onToggleFavorite),
-                          const SizedBox(
-                              width: _Design.gapSm),
-                          _MiniIconButton(
-                              icon: Icons.share_outlined,
-                              color: accentColor),
+                          
                         ]),
                         Row(children: [
                           Text(_moodGlyph(memory),
@@ -1055,11 +1051,7 @@ class _MemoryDetailSheet extends StatelessWidget {
                                 label: 'ویرایش',
                                 color: accentColor,
                                 onTap: onEdit),
-                            _ActionButton(
-                                icon: Icons.share,
-                                label: 'اشتراک',
-                                color: Colors.blue,
-                                onTap: () {}),
+                            
                             _ActionButton(
                                 icon: Icons.delete,
                                 label: 'حذف',
