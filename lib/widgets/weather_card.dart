@@ -61,12 +61,12 @@ class WeatherCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'حداکثر ${weather != null ? weather!.maxTemp.round() : '--'}°',
+                'حداکثر  °${weather != null ? weather!.maxTemp.round() : '--'}',
                 style:  TextStyle(color: theme.textColor, fontSize: 12),
               ),
               const SizedBox(height: 4),
               Text(
-                'حداقل ${weather != null ? weather!.minTemp.round() : '--'}°',
+                'حداقل  °${weather != null ? weather!.minTemp.round() : '--'}',
                 style:  TextStyle(color: theme.textColor, fontSize: 12),
               ),
             ],
