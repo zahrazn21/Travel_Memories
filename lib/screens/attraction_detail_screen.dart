@@ -4,11 +4,24 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:travel_memories/themes/app_background_theme.dart';
 import 'package:travel_memories/screens/add_memory_screen.dart';
+import 'package:travel_memories/widgets/retryable_network_image.dart';
+import 'package:travel_memories/models/attraction.dart';
+import 'package:travel_memories/services/favorites_service.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AttractionDetailScreen extends StatefulWidget {
   final Map<String, dynamic> attraction;
+  final String? cityName;
+  final void Function(String imageUrl)? onImageFound;
 
-  const AttractionDetailScreen({super.key, required this.attraction});
+  const AttractionDetailScreen({
+    super.key,
+    required this.attraction,
+    this.cityName,
+    this.onImageFound,
+  });
 
   @override
   State<AttractionDetailScreen> createState() => _AttractionDetailScreenState();
@@ -22,11 +35,19 @@ class _AttractionDetailScreenState extends State<AttractionDetailScreen> {
   String? _headerImage;
   bool isLoading = true;
   bool _hasError = false;
-  bool _isFavorite = false;
   final TextEditingController _memoryController = TextEditingController();
 
+  // شیء Attraction واقعی (نه فقط Map) که برای وصل شدن به FavoritesService لازمه
+  late final Attraction _attractionObj = Attraction.fromMap(widget.attraction);
+
   static const List<String> _validExtensions = [
-    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.webp',
+    '.svg',
+    '.bmp',
   ];
 
   @override
@@ -51,53 +72,128 @@ class _AttractionDetailScreenState extends State<AttractionDetailScreen> {
 
   bool _isValidImageUrl(String url) {
     if (url.isEmpty || url == 'null' || url == 'undefined') return false;
-    
+
     final lowerUrl = url.toLowerCase();
-    
-    final hasValidExtension = _validExtensions.any((ext) => lowerUrl.contains(ext));
+
+    final hasValidExtension = _validExtensions.any(
+      (ext) => lowerUrl.contains(ext),
+    );
     if (hasValidExtension) return true;
-    
-    final validDomains = ['wikimedia', 'wikipedia', 'commons', 'static', 'images'];
-    final hasValidDomain = validDomains.any((domain) => lowerUrl.contains(domain));
-    
+
+    final validDomains = [
+      'wikimedia',
+      'wikipedia',
+      'commons',
+      'static',
+      'images',
+    ];
+    final hasValidDomain = validDomains.any(
+      (domain) => lowerUrl.contains(domain),
+    );
+
     return hasValidDomain;
   }
 
-  void _addGalleryImage(String url, {bool asFirst = false}) {
-    if (!_isValidImageUrl(url)) {
-      print('⚠️ Invalid image skipped: $url');
-      return;
+  String _normalizeImageUrl(String url) {
+    var fixed = url.trim();
+    if (fixed.startsWith('http://')) {
+      fixed = fixed.replaceFirst('http://', 'https://');
     }
-    
-    final key = _imageKey(url);
-    if (_addedImageKeys.contains(key)) {
-      print('⚠️ Duplicate image skipped: $url');
-      return;
+    if (fixed.contains('Special:FilePath') && !fixed.contains('width=')) {
+      final separator = fixed.contains('?') ? '&' : '?';
+      fixed = '$fixed${separator}width=600';
     }
-    
-    _addedImageKeys.add(key);
-    
-    setState(() {
-      if (asFirst) {
-        galleryImages.insert(0, url);
-      } else {
-        galleryImages.add(url);
-      }
-      _headerImage ??= url;
-    });
-    
-    print('✅ Image added: $url');
+    return fixed;
   }
 
+void _addGalleryImage(
+  String url, {
+  bool asFirst = false,
+}) {
+  final fixedUrl =
+      _normalizeImageUrl(url);
+
+  if (!_isValidImageUrl(
+    fixedUrl,
+  )) {
+    print(
+      '⚠️ Invalid image skipped: '
+      '$fixedUrl',
+    );
+
+    return;
+  }
+
+
+  final key =
+      _imageKey(fixedUrl);
+
+
+  if (_addedImageKeys
+      .contains(key)) {
+
+    print(
+      '⚠️ Duplicate image skipped: '
+      '$fixedUrl',
+    );
+
+    return;
+  }
+
+
+  _addedImageKeys
+      .add(key);
+
+
+  setState(() {
+
+    if (asFirst) {
+
+      galleryImages
+          .insert(
+        0,
+        fixedUrl,
+      );
+
+    } else {
+
+      galleryImages
+          .add(
+        fixedUrl,
+      );
+    }
+
+
+    _headerImage ??=
+        fixedUrl;
+  });
+
+
+  print(
+    '✅ Image added: '
+    '$fixedUrl',
+  );
+
+
+  widget.onImageFound
+      ?.call(
+    fixedUrl,
+  );
+}
   Future<void> fetchWikipediaData(String name) async {
     try {
       final encoded = Uri.encodeComponent(name);
-      final res = await http.get(
-        Uri.parse('https://fa.wikipedia.org/api/rest_v1/page/summary/$encoded'),
-        headers: {
-          'User-Agent': 'TravelMemoriesApp/1.0 (contact: your@email.com)',
-        },
-      ).timeout(const Duration(seconds: 5));
+      final res = await http
+          .get(
+            Uri.parse(
+              'https://fa.wikipedia.org/api/rest_v1/page/summary/$encoded',
+            ),
+            headers: {
+              'User-Agent':
+                  'TravelMemoriesApp/1.0 (https://github.com/zahrazn21/Travel_Memories)',
+            },
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -105,7 +201,8 @@ class _AttractionDetailScreenState extends State<AttractionDetailScreen> {
           wikiData = data;
         });
 
-        final img = data['originalimage']?['source'] ?? data['thumbnail']?['source'];
+        final img =
+            data['thumbnail']?['source'] ?? data['originalimage']?['source'];
         if (img != null && img.isNotEmpty) {
           _addGalleryImage(img, asFirst: true);
         }
@@ -122,7 +219,8 @@ class _AttractionDetailScreenState extends State<AttractionDetailScreen> {
 
   Future<void> fetchWikidataExtra(String qid) async {
     try {
-      final query = '''
+      final query =
+          '''
 SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
   OPTIONAL { wd:$qid wdt:P571 ?inception }
   OPTIONAL { wd:$qid wdt:P84 ?architect . 
@@ -135,15 +233,17 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
 } LIMIT 5
 ''';
 
-      final res = await http.post(
-        Uri.parse('https://query.wikidata.org/sparql'),
-        headers: {
-          'Content-Type': 'application/sparql-query',
-          'Accept': 'application/json',
-          'User-Agent': 'TravelMemoriesApp/1.0',
-        },
-        body: query,
-      ).timeout(const Duration(seconds: 5));
+      final res = await http
+          .post(
+            Uri.parse('https://query.wikidata.org/sparql'),
+            headers: {
+              'Content-Type': 'application/sparql-query',
+              'Accept': 'application/json',
+              'User-Agent': 'TravelMemoriesApp/1.0',
+            },
+            body: query,
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -182,38 +282,38 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
   Future<void> fetchMoreImages(String name) async {
     try {
       final encoded = Uri.encodeComponent('$name Iran');
-      final res = await http.get(
-        Uri.parse(
-          'https://commons.wikimedia.org/w/api.php'
-          '?action=query&list=search&srnamespace=6'
-          '&srsearch=$encoded&format=json&origin=*&srlimit=5',
-        ),
-        headers: {
-          'User-Agent': 'TravelMemoriesApp/1.0',
-        },
-      ).timeout(const Duration(seconds: 5));
+      final res = await http
+          .get(
+            Uri.parse(
+              'https://commons.wikimedia.org/w/api.php'
+              '?action=query&list=search&srnamespace=6'
+              '&srsearch=$encoded&format=json&origin=*&srlimit=5',
+            ),
+            headers: {'User-Agent': 'TravelMemoriesApp/1.0'},
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (res.statusCode != 200) return;
 
       final results = jsonDecode(res.body)['query']?['search'] as List? ?? [];
-      
+
       int addedCount = 0;
       const maxImages = 3;
 
       for (final r in results) {
         if (addedCount >= maxImages) break;
-        
+
         final title = Uri.encodeComponent(r['title']);
-        final imgRes = await http.get(
-          Uri.parse(
-            'https://commons.wikimedia.org/w/api.php'
-            '?action=query&titles=$title&prop=imageinfo'
-            '&iiprop=url&iiurlwidth=600&format=json&origin=*',
-          ),
-          headers: {
-            'User-Agent': 'TravelMemoriesApp/1.0',
-          },
-        ).timeout(const Duration(seconds: 3));
+        final imgRes = await http
+            .get(
+              Uri.parse(
+                'https://commons.wikimedia.org/w/api.php'
+                '?action=query&titles=$title&prop=imageinfo'
+                '&iiprop=url&iiurlwidth=600&format=json&origin=*',
+              ),
+              headers: {'User-Agent': 'TravelMemoriesApp/1.0'},
+            )
+            .timeout(const Duration(seconds: 3));
 
         if (imgRes.statusCode == 200) {
           final pages = jsonDecode(imgRes.body)['query']?['pages'] as Map?;
@@ -259,12 +359,12 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
     }
 
     if (!mounted) return;
-    
+
     setState(() {
       isLoading = false;
       _hasError = galleryImages.isEmpty;
     });
-    
+
     if (galleryImages.isEmpty && mounted) {
       setState(() {
         _hasError = true;
@@ -273,13 +373,16 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
   }
 
   void _toggleFavorite() {
-    setState(() => _isFavorite = !_isFavorite);
+    final isNowFavorite = !FavoritesService.instance.isFavorite(_attractionObj);
+    FavoritesService.instance.toggle(_attractionObj);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         duration: const Duration(seconds: 1),
         behavior: SnackBarBehavior.floating,
         content: Text(
-          _isFavorite ? 'به علاقه‌مندی‌ها اضافه شد' : 'از علاقه‌مندی‌ها حذف شد',
+          isNowFavorite
+              ? 'به علاقه‌مندی‌ها اضافه شد'
+              : 'از علاقه‌مندی‌ها حذف شد',
         ),
       ),
     );
@@ -287,6 +390,7 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
 
   @override
   Widget build(BuildContext context) {
+    
     final name = widget.attraction['name'] as String? ?? '';
     final description =
         wikiData?['description'] ?? widget.attraction['description'] ?? '';
@@ -298,23 +402,26 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
         _headerImage ?? (uniqueImages.isNotEmpty ? uniqueImages[0] : null);
 
     return Scaffold(
+      backgroundColor: theme.panelBackgroundColors[1],
       body: Stack(
         children: [
-          // Container(
-          //   decoration: BoxDecoration(
-          //     gradient: LinearGradient(
-          //       begin: Alignment.topCenter,
-          //       end: Alignment.bottomCenter,
-          //       colors: theme.imageShadowColors,
-          //     ),
-          //   ),
-          // ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: theme.imageShadowColors,
+                ),
+              ),
+            ),
+          ),
           CustomScrollView(
             slivers: [
               Directionality(
                 textDirection: TextDirection.rtl,
                 child: SliverAppBar(
-                  expandedHeight: 300,
+                  expandedHeight: 450,
                   pinned: true,
                   backgroundColor: theme.imageShadowColors[1],
                   leading: Padding(
@@ -327,14 +434,20 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
                   actions: [
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: _GlassIconButton(
-                        icon: _isFavorite
-                            ? Icons.favorite
-                            : Icons.favorite_border,
-                        iconColor: _isFavorite
-                            ? Colors.pinkAccent
-                            : Colors.white,
-                        onTap: _toggleFavorite,
+                      child: AnimatedBuilder(
+                        animation: FavoritesService.instance,
+                        builder: (context, _) {
+                          final isFav = FavoritesService.instance.isFavorite(
+                            _attractionObj,
+                          );
+                          return _GlassIconButton(
+                            icon: isFav
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            iconColor: isFav ? Colors.pinkAccent : Colors.white,
+                            onTap: _toggleFavorite,
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -458,20 +571,16 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
-                                          border: Border.all(
-                                            color: isActive
-                                                ? Colors.purple
-                                                : theme.textColor.withOpacity(
-                                                    0.15,
-                                                  ),
-                                            width: isActive ? 2 : 1,
-                                          ),
+                                          
                                         ),
                                         child: ClipRRect(
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
-                                          child: _buildImage(img, fit: BoxFit.cover),
+                                          child: _buildImage(
+                                            img,
+                                            fit: BoxFit.cover,
+                                          ),
                                         ),
                                       ),
                                     );
@@ -481,8 +590,14 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
                               const SizedBox(height: 16),
                             ],
                           ],
-                          _sectionTitle('ثبت خاطره'),
-                          const SizedBox(height: 8),
+                          if (_hasLocation) ...[
+                            _sectionTitle('موقعیت مکانی'),
+                            const SizedBox(height: 8),
+                            _buildLocationMap(),
+                            const SizedBox(height: 16),
+                          ],
+                          // _sectionTitle('ثبت خاطره'),
+                          // const SizedBox(height: 8),
                           _buildAddMemoryButton(),
                           const SizedBox(height: 100),
                         ],
@@ -505,35 +620,15 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
         child: const Icon(Icons.broken_image, color: Colors.white30, size: 40),
       );
     }
-    
-    return Image.network(
-      url,
+
+    return RetryableNetworkImage(
+      url: url,
       fit: fit,
-      headers: {
-        'User-Agent': 'TravelMemoriesApp/1.0',
-      },
-      errorBuilder: (context, error, stackTrace) {
-        print('❌ Image load error: $url');
-        return Container(
-          color: Colors.white12,
-          child: const Icon(Icons.broken_image, color: Colors.white30, size: 40),
-        );
-      },
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          color: Colors.white12,
-          child: Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                      loadingProgress.expectedTotalBytes!
-                  : null,
-              color: Colors.white30,
-            ),
-          ),
-        );
-      },
+      headers: const {'User-Agent': 'TravelMemoriesApp/1.0'},
+      fallbackBuilder: (_) => Container(
+        color: Colors.white12,
+        child: const Icon(Icons.broken_image, color: Colors.white30, size: 40),
+      ),
     );
   }
 
@@ -568,6 +663,106 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
         ],
       ),
     );
+  }
+
+  bool get _hasLocation =>
+      _attractionObj.lat != null && _attractionObj.lng != null;
+
+  Widget _buildLocationMap() {
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final lat = _attractionObj.lat!;
+    final lng = _attractionObj.lng!;
+    final accent = theme.travelTextColor[1];
+
+    return Container(
+      height: 180,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.textColor.withOpacity(0.15)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            FlutterMap(
+              options: MapOptions(
+                initialCenter: LatLng(lat, lng),
+                initialZoom: 15,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+                ),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate:
+                      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                  subdomains: const ['a', 'b', 'c', 'd'],
+                  userAgentPackageName: 'com.example.travel_memories',
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: LatLng(lat, lng),
+                      width: 44,
+                      height: 44,
+                      child: Icon(
+                        Icons.location_on_rounded,
+                        size: 40,
+                        color: accent,
+                        shadows: [
+                          Shadow(
+                            color: accent.withOpacity(0.6),
+                            blurRadius: 12,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Positioned(
+              left: 10,
+              bottom: 10,
+              child: GestureDetector(
+                onTap: () => _openInMapsApp(lat, lng),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: accent.withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.directions, color: accent, size: 16),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'مسیریابی',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openInMapsApp(double lat, double lng) async {
+    final uri = Uri.parse('geo:$lat,$lng?q=$lat,$lng');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      print('❌ Could not launch maps app: $e');
+    }
   }
 
   Widget _buildWikidataSection() {
@@ -752,7 +947,12 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
 
   Widget _buildAddMemoryButton() {
     final attractionName = widget.attraction['name'] as String? ?? '';
-    final cityName = widget.attraction['city'] as String? ?? '';
+    final cityName = widget.cityName?.isNotEmpty == true
+        ? widget.cityName!
+        : (widget.attraction['city'] as String? ?? '');
+    print(
+      '🐞 DEBUG cityName -> widget.cityName="${widget.cityName}", attraction[city]="${widget.attraction['city']}", final="$cityName"',
+    );
 
     return Center(
       child: Container(
@@ -780,7 +980,9 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
                   initialCity: cityName,
                   initialAttraction: attractionName,
                   onMemorySaved: (memory) {
-                    print('خاطره جدید برای جاذبه ${memory.attractionName} در شهر ${memory.city}');
+                    print(
+                      'خاطره جدید برای جاذبه ${memory.attractionName} در شهر ${memory.city}',
+                    );
                   },
                 ),
               ),
@@ -804,7 +1006,6 @@ SELECT ?inception ?architectLabel ?styleLabel ?image WHERE {
   }
 }
 
-/// Small frosted-glass circular icon button
 class _GlassIconButton extends StatelessWidget {
   final IconData icon;
   final Color iconColor;

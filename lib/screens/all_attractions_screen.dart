@@ -4,15 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:travel_memories/models/attraction.dart';
 import 'package:travel_memories/screens/attraction_detail_screen.dart';
 import 'package:travel_memories/themes/app_background_theme.dart';
+import 'package:travel_memories/widgets/retryable_network_image.dart';
 
 class AllAttractionsScreen extends StatefulWidget {
   final List<Attraction> attractions;
   final String cityName;
+  final String? cityImage;
 
   const AllAttractionsScreen({
     super.key,
     required this.attractions,
     required this.cityName,
+    this.cityImage,
   });
 
   @override
@@ -24,32 +27,30 @@ class _AllAttractionsScreenState extends State<AllAttractionsScreen> {
 
   List<Attraction> get _filtered {
     if (_query.isEmpty) return widget.attractions;
-    return widget.attractions
-        .where((a) => a.name.contains(_query))
-        .toList();
+    return widget.attractions.where((a) => a.name.contains(_query)).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-        final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
     return Scaffold(
       backgroundColor: theme.gradientColors[1],
       appBar: AppBar(
-        backgroundColor:theme.gradientColors[2],
+        backgroundColor: theme.gradientColors[2],
         elevation: 0,
         title: Text(
           'جاذبه‌های ${widget.cityName}',
-          style:  TextStyle(color: theme.textColor, fontSize: 17),
+          style: TextStyle(color: theme.textColor, fontSize: 17),
         ),
-        iconTheme:  IconThemeData(color: theme.textColor),
+        iconTheme: IconThemeData(color: theme.textColor),
       ),
       body: Column(
         children: [
           _buildSearchField(),
           Expanded(
             child: _filtered.isEmpty
-                ?  Center(
+                ? Center(
                     child: Text(
                       'جاذبه‌ای پیدا نشد',
                       style: TextStyle(color: theme.textColor),
@@ -63,18 +64,18 @@ class _AllAttractionsScreenState extends State<AllAttractionsScreen> {
   }
 
   Widget _buildSearchField() {
-            final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: TextField(
         textAlign: TextAlign.right,
-        style:  TextStyle(color: theme.textColor),
+        style: TextStyle(color: theme.textColor),
         onChanged: (value) => setState(() => _query = value),
         decoration: InputDecoration(
           hintText: ' ...جستحوی جاذبه ',
-          hintStyle:  TextStyle(color: theme.textColor),
-          prefixIcon:  Icon(Icons.search, color: theme.textColor),
+          hintStyle: TextStyle(color: theme.textColor),
+          prefixIcon: Icon(Icons.search, color: theme.textColor),
           filled: true,
           fillColor: theme.textColor.withOpacity(0.06),
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -97,17 +98,33 @@ class _AllAttractionsScreenState extends State<AllAttractionsScreen> {
         childAspectRatio: 0.68,
       ),
       itemCount: _filtered.length,
-      itemBuilder: (context, index) =>
-          AttractionGridCard(attraction: _filtered[index]),
+      itemBuilder: (context, index) => AttractionGridCard(
+        attraction: _filtered[index],
+        cityName: widget.cityName,
+        cityImage: widget.cityImage,
+      ),
     );
   }
 }
 
-
 class AttractionGridCard extends StatelessWidget {
   final Attraction attraction;
+  final String? cityName;
+  final String? cityImage;
 
-  const AttractionGridCard({super.key, required this.attraction});
+  const AttractionGridCard({
+    super.key,
+    required this.attraction,
+    this.cityName,
+    this.cityImage,
+  });
+
+  String get _fallbackAsset {
+    if (cityImage != null && cityImage!.isNotEmpty && cityImage != 'null') {
+      return 'images/cities/$cityImage';
+    }
+    return 'images/3.png';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,8 +132,10 @@ class AttractionGridCard extends StatelessWidget {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              AttractionDetailScreen(attraction: attraction.toMap()),
+          builder: (_) => AttractionDetailScreen(
+            attraction: attraction.toMap(),
+            cityName: cityName,
+          ),
         ),
       ),
       child: Container(
@@ -135,77 +154,78 @@ class AttractionGridCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(
-                attraction.image,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: Colors.grey.shade800,
-                  child: const Icon(
-                    Icons.broken_image,
-                    size: 32,
-                    color: Colors.grey,
+              (attraction.image == null || attraction.image!.isEmpty)
+                  ? Image.asset(
+                      _fallbackAsset,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          Image.asset('images/cities/$cityImage', fit: BoxFit.cover),
+                    )
+                  : RetryableNetworkImage(
+                      url: attraction.image!,
+                      fit: BoxFit.cover,
+                      headers: const {'User-Agent': 'TravelMemoriesApp/1.0'},
+                      fallbackBuilder: (_) => Image.asset(
+                        _fallbackAsset,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Image.asset('images/cities/$cityImage', fit: BoxFit.cover),
+                      ),
+                    ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.85),
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        attraction.name,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          shadows: [Shadow(blurRadius: 4, color: Colors.black)],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      if (attraction.inceptionYear != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          'ساخت: ${attraction.inceptionYear}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
-       Positioned(
-  bottom: 0,
-  left: 0,
-  right: 0,
-  child: Container(
-    padding: const EdgeInsets.symmetric(
-      horizontal: 8,
-      vertical: 8,
-    ),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Colors.transparent,
-          Colors.black.withOpacity(0.85),
-        ],
-      ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          attraction.name,
-          textAlign: TextAlign.right,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            shadows: [
-              Shadow(
-                blurRadius: 4,
-                color: Colors.black,
-              ),
             ],
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-
-        if (attraction.inceptionYear != null) ...[
-          const SizedBox(height: 3),
-          Text(
-            'ساخت: ${attraction.inceptionYear}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 10,
-            ),
-          ),
-        ],
-      ],
-    ),
-  ),
-),     ],
           ),
         ),
       ),
     );
   }
 }
-

@@ -3,32 +3,36 @@ class Attraction {
   final String? description;
   final String? website;
   final String? inceptionYear;
-  final String image;
+  
+  String? image;
   final double? lat;
   final double? lng;
-  final String? province; // 👈 جدید
+  final String? province;
+  final String? nameEn;
 
-  const Attraction({
+  Attraction({
     required this.name,
-    required this.image,
+    this.image,
     this.description,
     this.website,
     this.inceptionYear,
     this.lat,
     this.lng,
-    this.province, // 👈 جدید
+    this.province,
+    this.nameEn,
   });
 
   factory Attraction.fromMap(Map<String, dynamic> map) {
     return Attraction(
       name: map['name'] as String,
-      image: map['image'] as String,
+      image: map['image'] as String?,
       description: map['description'] as String?,
       website: map['website'] as String?,
       inceptionYear: map['inception'] as String?,
       lat: (map['lat'] as num?)?.toDouble(),
       lng: (map['lng'] as num?)?.toDouble(),
-      province: map['province'] as String?, // 👈 جدید
+      province: map['province'] as String?,
+      nameEn: map['nameEn'] as String?,
     );
   }
 
@@ -41,7 +45,8 @@ class Attraction {
       'image': image,
       'lat': lat,
       'lng': lng,
-      'province': province, // 👈 جدید
+      'province': province,
+      'nameEn': nameEn,
     };
   }
 

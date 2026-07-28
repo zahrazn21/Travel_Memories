@@ -165,12 +165,19 @@ class _AddMemoryPageState extends State<AddMemoryPage> {
         }
       }
     } else {
-      if (widget.initialCity != null && widget.initialCity!.isNotEmpty) {
+      final hasInitialCity =
+          widget.initialCity != null && widget.initialCity!.isNotEmpty;
+      final hasInitialAttraction =
+          widget.initialAttraction != null &&
+              widget.initialAttraction!.isNotEmpty;
+
+      if (hasInitialCity || hasInitialAttraction) {
         _isFromAttraction = true;
+      }
+      if (hasInitialCity) {
         _selectedCity = widget.initialCity!;
       }
-      if (widget.initialAttraction != null &&
-          widget.initialAttraction!.isNotEmpty) {
+      if (hasInitialAttraction) {
         _selectedAttraction = widget.initialAttraction!;
       }
     }
@@ -237,7 +244,7 @@ class _AddMemoryPageState extends State<AddMemoryPage> {
                 titleText,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 20,
+                  fontSize: 16,
                   color: textColor,
                   shadows: [
                     Shadow(
@@ -764,7 +771,7 @@ class _AddMemoryPageState extends State<AddMemoryPage> {
                       hintText: hint,
                       hintStyle: TextStyle(
                         color: textColor.withOpacity(0.5),
-                        fontSize: 14,
+                        fontSize: 11,
                       ),
                       suffixIcon: Icon(icon, color: accentColor, size: 22),
                       border: InputBorder.none,

@@ -130,7 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final appTheme = theme.extension<AppBackgroundTheme>()!;
     final isDark = theme.brightness == Brightness.dark;
     final isPink =
-        appTheme.gradientColors.first == Color.fromARGB(255, 255, 186, 209);
+        appTheme.gradientColors.first == const Color.fromARGB(255, 255, 186, 209);
 
     final currentTheme = context.watch<ThemeProvider>().currentTheme;
 
@@ -150,119 +150,122 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            _isEditing ? 'ویرایش پروفایل' : 'پروفایل',
-            style: TextStyle(
-              color: isPink
-                  ? const Color(0xFF4A1942)
-                  : (isDark ? Colors.white : Colors.black),
-            ),
+      child: Container(
+        // پس‌زمینه رنگی کامل صفحه
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: appTheme.gradientColors,
           ),
-          centerTitle: true,
-          backgroundColor: isPink
-              ? const Color(0xFFFFF0F5)
-              : (isDark ? const Color(0xFF0A0E27) : Colors.white),
-          foregroundColor: isPink
-              ? const Color(0xFF4A1942)
-              : (isDark ? Colors.white : Colors.black),
-          elevation: 0,
-          actions: [
-            // دکمه ویرایش
-            if (!_isEditing)
-              IconButton(
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.transparent, // برای نشان دادن گرادینت زیرین
+          appBar: AppBar(
+            title: Text(
+              _isEditing ? 'ویرایش پروفایل' : 'پروفایل',
+              style: TextStyle(
+                color: isPink
+                    ? const Color(0xFF4A1942)
+                    : (isDark ? Colors.white : Colors.black),
+              ),
+            ),
+            centerTitle: true,
+            backgroundColor: isPink
+                ? const Color(0xFFFFF0F5)
+                : (isDark ? const Color(0xFF0A0E27) : Colors.white),
+            foregroundColor: isPink
+                ? const Color(0xFF4A1942)
+                : (isDark ? Colors.white : Colors.black),
+            elevation: 0,
+            actions: [
+              // دکمه ویرایش
+              if (!_isEditing)
+                IconButton(
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    color: isPink
+                        ? const Color(0xFF4A1942)
+                        : (isDark ? Colors.white : Colors.black),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isEditing = true;
+                      _updateControllers();
+                    });
+                  },
+                ),
+              PopupMenuButton<String>(
+                onSelected: (value) =>
+                    context.read<ThemeProvider>().setTheme(value),
                 icon: Icon(
-                  Icons.edit_outlined,
+                  Icons.palette_outlined,
                   color: isPink
                       ? const Color(0xFF4A1942)
                       : (isDark ? Colors.white : Colors.black),
                 ),
-                onPressed: () {
-                  setState(() {
-                    _isEditing = true;
-                    _updateControllers();
-                  });
-                },
-              ),
-            PopupMenuButton<String>(
-              onSelected: (value) =>
-                  context.read<ThemeProvider>().setTheme(value),
-              icon: Icon(
-                Icons.palette_outlined,
-                color: isPink
-                    ? const Color(0xFF4A1942)
-                    : (isDark ? Colors.white : Colors.black),
-              ),
-              itemBuilder: (_) => [
-                const PopupMenuItem(
-                  value: 'dark',
-                  child: SizedBox(
-                    width: 120,
-                    child: Row(
-                      children: [
-                        Icon(Icons.nightlight_round,
-                            color: Colors.deepPurple, size: 20),
-                        SizedBox(width: 10),
-                        Text('تاریک'),
-                      ],
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: 'dark',
+                    child: SizedBox(
+                      width: 120,
+                      child: Row(
+                        children: [
+                          Icon(Icons.nightlight_round,
+                              color: Colors.deepPurple, size: 20),
+                          SizedBox(width: 10),
+                          Text('تاریک'),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const PopupMenuItem(
-                  value: 'blue',
-                  child: SizedBox(
-                    width: 120,
-                    child: Row(
-                      children: [
-                        Icon(Icons.water_drop,
-                            color: Colors.blue, size: 20),
-                        SizedBox(width: 10),
-                        Text('آبی'),
-                      ],
+                  const PopupMenuItem(
+                    value: 'blue',
+                    child: SizedBox(
+                      width: 120,
+                      child: Row(
+                        children: [
+                          Icon(Icons.water_drop,
+                              color: Colors.blue, size: 20),
+                          SizedBox(width: 10),
+                          Text('آبی'),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const PopupMenuItem(
-                  value: 'pink',
-                  child: SizedBox(
-                    width: 120,
-                    child: Row(
-                      children: [
-                        Icon(Icons.favorite,
-                            color: Colors.pink, size: 20),
-                        SizedBox(width: 10),
-                        Text('صورتی'),
-                      ],
+                  const PopupMenuItem(
+                    value: 'pink',
+                    child: SizedBox(
+                      width: 120,
+                      child: Row(
+                        children: [
+                          Icon(Icons.favorite,
+                              color: Colors.pink, size: 20),
+                          SizedBox(width: 10),
+                          Text('صورتی'),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.settings_outlined,
-                color: isPink
-                    ? const Color(0xFF4A1942)
-                    : (isDark ? Colors.white : Colors.black),
+                ],
               ),
-              onPressed: () {},
-            ),
-          ],
-        ),
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: appTheme.gradientColors,
-            ),
+              IconButton(
+                icon: Icon(
+                  Icons.settings_outlined,
+                  color: isPink
+                      ? const Color(0xFF4A1942)
+                      : (isDark ? Colors.white : Colors.black),
+                ),
+                onPressed: () {},
+              ),
+            ],
           ),
-          child: _loading
+          body: _loading
               ? Center(
                   child: CircularProgressIndicator(
                       color: primaryColor))
               : SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
                       horizontal: 20, vertical: 10),
                   child: Column(
@@ -469,59 +472,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 30),
                       ],
 
-                      // Container(
-                      //   padding: const EdgeInsets.symmetric(
-                      //       horizontal: 20, vertical: 10),
-                      //   decoration: BoxDecoration(
-                      //     color: isPink
-                      //         ? Colors.pink.shade50.withOpacity(0.6)
-                      //         : (isDark
-                      //             ? Colors.grey.shade800.withOpacity(0.4)
-                      //             : Colors.grey.shade100),
-                      //     borderRadius: BorderRadius.circular(25),
-                      //     border: Border.all(
-                      //       color: isPink
-                      //           ? Colors.pink.withOpacity(0.3)
-                      //           : (isDark
-                      //               ? Colors.grey.shade700
-                      //               : Colors.grey.shade300),
-                      //       width: 1.5,
-                      //     ),
-                      //   ),
-                      //   child: Row(
-                      //     mainAxisSize: MainAxisSize.min,
-                      //     children: [
-                      //       Icon(
-                      //         currentTheme == 'pink'
-                      //             ? Icons.favorite
-                      //             : (currentTheme == 'dark'
-                      //                 ? Icons.nightlight_round
-                      //                 : Icons.water_drop),
-                      //         color: currentTheme == 'pink'
-                      //             ? Colors.pink
-                      //             : (currentTheme == 'dark'
-                      //                 ? Colors.deepPurple
-                      //                 : Colors.blue),
-                      //         size: 20,
-                      //       ),
-                      //       const SizedBox(width: 10),
-                      //       Text(
-                      //         currentTheme == 'pink'
-                      //             ? 'تم صورتی'
-                      //             : (currentTheme == 'dark'
-                      //                 ? 'تم تاریک'
-                      //                 : 'تم آبی'),
-                      //         style: TextStyle(
-                      //           color: appTheme.textColor,
-                      //           fontSize: 14,
-                      //           fontWeight: FontWeight.w600,
-                      //         ),
-                      //       ),
-                      //     ],
-                      //   ),
-                      // ),
-                      // const SizedBox(height: 25),
-
                       SizedBox(
                         width: double.infinity,
                         height: 55,
@@ -534,7 +484,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: appTheme.travelTextColor[1],
-                            foregroundColor:Colors.white,
+                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
                                 vertical: 15),
                             shape: RoundedRectangleBorder(
@@ -543,7 +493,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 100),
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),

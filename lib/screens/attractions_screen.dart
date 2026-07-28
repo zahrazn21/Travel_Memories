@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:travel_memories/models/attraction.dart';
+import 'package:travel_memories/screens/add_memory_screen.dart';
 import 'package:travel_memories/screens/all_attractions_screen.dart';
 import 'package:travel_memories/screens/city_map_screen.dart';
 import 'package:travel_memories/screens/favorites_screen.dart';
@@ -12,7 +13,6 @@ import 'package:travel_memories/widgets/attraction_card.dart';
 import 'package:travel_memories/widgets/city_stat_item.dart';
 import 'package:travel_memories/widgets/wave_clipper.dart';
 import 'package:travel_memories/widgets/weather_card.dart';
-import 'package:travel_memories/screens/add_memory_screen.dart';
 
 class AttractionsScreen extends StatefulWidget {
   final Map<String, dynamic> city;
@@ -41,11 +41,12 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
     _loadCityInfo();
   }
 
-  double get _lat => widget.city['lat'];
-  double get _lng => widget.city['lng'];
-  String get _cityNameFa => widget.city['name_fa'];
+  double get _lat => double.tryParse('${widget.city['lat']}') ?? 0.0;
+  double get _lng => double.tryParse('${widget.city['lng']}') ?? 0.0;
+  String get _cityNameFa => widget.city['name_fa'] ?? '';
 
   Future<void> _loadCityInfo() async {
+    if (_cityNameFa.isEmpty) return;
     final city = await CityDataService.getCityByName(_cityNameFa);
     if (!mounted) return;
     setState(() => _cityInfo = city);
@@ -57,26 +58,33 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
     setState(() => _weather = data);
   }
 
-  Future<void> _loadAttractions() async {
-    try {
-      final results = await _attractionsService.fetchNear(
-        lat: _lat,
-        lng: _lng,
-        cityKey: _cityNameFa, 
-      );
-      if (!mounted) return;
-      setState(() {
-        _attractions = results;
-        _isLoadingAttractions = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _attractionsError = e.toString();
-        _isLoadingAttractions = false;
-      });
-    }
+Future<void> _loadAttractions() async {
+  try {
+    final results = await _attractionsService.fetchNear(
+      lat: _lat,
+      lng: _lng,
+      cityKey: _cityNameFa,
+      onBatchUpdate: (current) {
+        if (!mounted) return;          // 👈 خیلی مهم، جلوی خطای setState-after-dispose رو می‌گیره
+        setState(() {
+          _attractions = current;
+          _isLoadingAttractions = false;
+        });
+      },
+    );
+    if (!mounted) return;
+    setState(() {
+      _attractions = results;
+      _isLoadingAttractions = false;
+    });
+  } catch (e) {
+    if (!mounted) return;
+    setState(() {
+      _attractionsError = e.toString();
+      _isLoadingAttractions = false;
+    });
   }
+}
 
   String get _slogan => _cityInfo?['slogan'] ?? 'لقب موجود نیست';
 
@@ -90,7 +98,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
 
   String _formatArea(num? area) {
     if (area == null) return '--';
-    return '$area km²';
+    return '\u200E$area km²';
   }
 
   @override
@@ -101,15 +109,17 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
           _buildBackgroundGradient(),
           _buildTopImage(),
           _buildTopImageOverlay(),
-          _buildBackButton(),
-          SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 190),
-                Expanded(child: _buildContentPanel()),
-              ],
-            ),
+          
+          DraggableScrollableSheet(
+            initialChildSize: 0.75, 
+            minChildSize: 0.66,     
+            maxChildSize: 0.88,    
+            builder: (context, scrollController) {
+              return _buildContentPanel(scrollController);
+            },
           ),
+
+          _buildBackButton(),
           _buildFavoritesButton(),
         ],
       ),
@@ -129,22 +139,37 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
     );
   }
 
-  Widget _buildTopImage() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: SizedBox(
-        width: double.infinity,
-        height: 280,
-        child: Image.asset(
-          "images/cities/${widget.city['image']}",
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
-  }
+Widget _buildTopImage() {
+  final imageName = widget.city['image']?.toString().trim();
+  
+  // بررسی کامل: نال نباشه، خالی نباشه، و مقدار متنی "null" هم نداشته باشه
+  final isValidImage = imageName != null && 
+                       imageName.isNotEmpty && 
+                       imageName.toLowerCase() != 'null';
 
+  return Positioned(
+    top: 0,
+    left: 0,
+    right: 0,
+    child: SizedBox(
+      width: double.infinity,
+      height: 320,
+      child: isValidImage
+          ? Image.asset(
+              "images/cities/$imageName",
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: Colors.grey.shade900,
+                child: const Icon(Icons.broken_image, color: Colors.white54, size: 40),
+              ),
+            )
+          : Container(
+              color: Colors.grey.shade900,
+              child: const Icon(Icons.location_city, color: Colors.white54, size: 40),
+            ),
+    ),
+  );
+}
   Widget _buildTopImageOverlay() {
     final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
@@ -152,7 +177,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
       top: 0,
       left: 0,
       right: 0,
-      height: 280,
+      height: 320,
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -165,7 +190,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
     );
   }
 
-  Widget _buildContentPanel() {
+  Widget _buildContentPanel(ScrollController scrollController) {
     final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
 
     return CustomPaint(
@@ -184,75 +209,79 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 16),
-                  _buildCityTitle(),
-                  const SizedBox(height: 4),
-                  _buildSlogan(),
-                  const SizedBox(height: 10),
-
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildCityStatsRow(),
-                          const SizedBox(height: 10),
-                          if (_cityInfo?['about'] != null) ...[
-                            _buildAboutSection(),
-                            const SizedBox(height: 10),
-                          ],
-                          WeatherCard(weather: _weather),
-                          const SizedBox(height: 14),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _sectionTitle('جاذبه‌های دیدنی'),
-                              TextButton(
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => AllAttractionsScreen(
-                                      attractions: _attractions,
-                                      cityName: _cityNameFa,
-                                    ),
-                                  ),
-                                ),
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                  ),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: Text(
-                                  'مشاهده همه',
-                                  style: TextStyle(
-                                    color: theme.travelTextColor[1],
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 8),
-                          _buildAttractionsList(),
-                          const SizedBox(height: 14),
-                          _sectionTitle('موقعیت $_cityNameFa روی نقشه'),
-                          const SizedBox(height: 8),
-                          CityMapWidget(city: widget.city, height: 180),
-                          const SizedBox(height: 16),
-                          _buildAddMemoryButton(),
-                        ],
+              child: SingleChildScrollView(
+                controller: scrollController, // اتصال کنترلر اسکرول کشو
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 12),
+                    // دستگیره کشو برای UX بهتر
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: theme.textColor.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    _buildCityTitle(),
+                    const SizedBox(height: 4),
+                    _buildSlogan(),
+                    const SizedBox(height: 12),
+                    _buildCityStatsRow(),
+                    const SizedBox(height: 10),
+                    if (_cityInfo?['about'] != null) ...[
+                      _buildAboutSection(),
+                      const SizedBox(height: 10),
+                    ],
+                    WeatherCard(weather: _weather),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _sectionTitle('جاذبه‌های دیدنی'),
+                        TextButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AllAttractionsScreen(
+                                attractions: _attractions,
+                                cityName: _cityNameFa,
+                                cityImage: widget.city['image'] as String?,
+                              ),
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'مشاهده همه',
+                            style: TextStyle(
+                              color: theme.travelTextColor[1],
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildAttractionsList(),
+                    const SizedBox(height: 14),
+                    _sectionTitle('موقعیت $_cityNameFa روی نقشه'),
+                    const SizedBox(height: 8),
+                    CityMapWidget(city: widget.city, height: 180),
+                    const SizedBox(height: 16),
+                    _buildAddMemoryButton(),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
           ),
@@ -432,8 +461,11 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(vertical: 4),
             itemCount: _attractions.length,
-            itemBuilder: (context, index) =>
-                AttractionCard(attraction: _attractions[index]),
+            itemBuilder: (context, index) => AttractionCard(
+              attraction: _attractions[index],
+              cityName: _cityNameFa,
+              cityImage: widget.city['image'] as String?,
+            ),
           );
         },
       ),
@@ -462,7 +494,9 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const AddMemoryPage()),
+              MaterialPageRoute(
+                builder: (context) => AddMemoryPage(initialCity: _cityNameFa),
+              ),
             );
           },
           icon: const Icon(Icons.edit, color: Colors.white, size: 18),

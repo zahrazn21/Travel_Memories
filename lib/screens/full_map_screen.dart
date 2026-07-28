@@ -16,14 +16,11 @@ class _FullMapScreenState extends State<FullMapScreen> {
   final MapController _mapController = MapController();
   double _zoom = 13;
 
-  String _tileUrlFor(Color primary) {
-    if (primary == Colors.blue) {
-      return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-    }
-    if (primary == Colors.pink) {
-      return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-    }
-    return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  double _parseCoord(dynamic value, double fallback) {
+    if (value == null) return fallback;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? fallback;
+    return fallback;
   }
 
   void _zoomBy(double delta) {
@@ -34,21 +31,23 @@ class _FullMapScreenState extends State<FullMapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).extension<AppBackgroundTheme>()!;
+    final theme = Theme.of(context).extension<AppBackgroundTheme>();
     final primary = Theme.of(context).primaryColor;
-    final accent = theme.travelTextColor[0];
-    final accentSoft = theme.travelTextColor[1];
-    final tileUrl = _tileUrlFor(primary);
+    final accent = theme?.travelTextColor[0] ?? primary;
+    final accentSoft = theme?.travelTextColor.length != null && theme!.travelTextColor.length > 1 
+        ? theme.travelTextColor[1] 
+        : primary.withOpacity(0.7);
 
-    final lat = widget.city['lat'] ?? 35.6892;
-    final lng = widget.city['lng'] ?? 51.3890;
+    final lat = _parseCoord(widget.city['lat'], 35.6892);
+    final lng = _parseCoord(widget.city['lng'], 51.3890);
+    final cityName = widget.city['name_fa'] ?? widget.city['name'] ?? 'نقشه';
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
           Hero(
-            tag: 'city_map_${widget.city['name_fa']}',
+            tag: 'city_map_$cityName',
             child: FlutterMap(
               mapController: _mapController,
               options: MapOptions(
@@ -60,9 +59,9 @@ class _FullMapScreenState extends State<FullMapScreen> {
               ),
               children: [
                 TileLayer(
-                  urlTemplate: tileUrl,
+                  urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
                   subdomains: const ['a', 'b', 'c', 'd'],
-                  userAgentPackageName: 'com.example.app',
+                  userAgentPackageName: 'ir.yourname.travel_memories',
                 ),
                 MarkerLayer(
                   markers: [
@@ -124,7 +123,7 @@ class _FullMapScreenState extends State<FullMapScreen> {
                     border: Border.all(color: accent.withOpacity(.55)),
                   ),
                   child: Text(
-                    widget.city['name_fa'] ?? '',
+                    cityName,
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,

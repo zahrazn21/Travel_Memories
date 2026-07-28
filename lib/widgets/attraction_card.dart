@@ -2,35 +2,81 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:travel_memories/models/attraction.dart';
 import 'package:travel_memories/screens/attraction_detail_screen.dart';
+import 'package:travel_memories/services/attractions_service.dart';
 import 'package:travel_memories/services/favorites_service.dart';
+import 'package:travel_memories/widgets/retryable_network_image.dart';
 
 class AttractionCard extends StatelessWidget {
   final Attraction attraction;
   final double? width;
   final double? height;
-  final bool showFavoriteButton; 
+  final bool showFavoriteButton;
+  final String? cityName;
+  final String? cityImage;
+  final String? cityKey;
+  final void Function(String imageUrl)? onImageFound;
 
- const AttractionCard({
+  const AttractionCard({
     super.key,
     required this.attraction,
     this.width,
     this.height,
-    this.showFavoriteButton = true, 
+    this.showFavoriteButton = true,
+    this.cityName,
+    this.cityImage,
+    this.cityKey,
+    this.onImageFound,
   });
-  
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) =>
-              AttractionDetailScreen(attraction: attraction.toMap()),
+
+  String get _fallbackAsset {
+    if (cityImage != null && cityImage!.isNotEmpty && cityImage != 'null') {
+      return 'images/cities/$cityImage';
+    }
+    return 'images/3.png';
+  }
+
+  Future<void> _openDetail(BuildContext context) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AttractionDetailScreen(
+          attraction: attraction.toMap(),
+          cityName: cityName,
+          onImageFound: (imageUrl) async {
+            if (imageUrl.trim().isEmpty) {
+              return;
+            }
+
+            attraction.image = imageUrl;
+            onImageFound?.call(imageUrl);
+
+            if (cityKey != null && cityKey!.trim().isNotEmpty) {
+              await AttractionsService.updateAttractionImage(
+                cityKey: cityKey!,
+                attractionName: attraction.name,
+                imageUrl: imageUrl,
+              );
+            }
+          },
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayCity = (cityName != null && cityName!.isNotEmpty)
+        ? cityName
+        : attraction.province;
+
+    final hasImage =
+        attraction.image != null && attraction.image!.trim().isNotEmpty;
+
+    return GestureDetector(
+      onTap: () => _openDetail(context),
       child: SizedBox(
-        width: 120,
-        height: 200,
+        width: width ?? 120,
+        height: height ?? 200,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           child: Container(
@@ -50,45 +96,51 @@ class AttractionCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Hero(
-                    tag: attraction.image,
-                    child: Image.network(
-                      attraction.image,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                      frameBuilder: (context, child, frame, wasSyncLoaded) {
-                        if (wasSyncLoaded) return child;
-                        return AnimatedOpacity(
-                          opacity: frame == null ? 0 : 1,
-                          duration: const Duration(milliseconds: 350),
-                          curve: Curves.easeOut,
-                          child: child,
-                        );
-                      },
-                      errorBuilder: (_, __, ___) => Container(
-                        color: Colors.grey.shade300,
-                        child: const Icon(
-                          Icons.broken_image,
-                          size: 40,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
+                    tag: hasImage ? attraction.image! : attraction.name,
+                    child: hasImage
+                        ? RetryableNetworkImage(
+                            key: ValueKey(attraction.image),
+                            url: attraction.image!,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            headers: const {
+                              'User-Agent':
+                                  'TravelMemoriesApp/1.0 '
+                                  '(https://github.com/zahrazn21/Travel_Memories)',
+                            },
+                            fallbackBuilder: (_) {
+                              return Image.asset(
+                                _fallbackAsset,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          )
+                        : Image.asset(
+                            _fallbackAsset,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
                   ),
                 ),
 
-                 if (showFavoriteButton)
+                if (showFavoriteButton)
                   Positioned(
                     top: 6,
                     left: 6,
                     child: AnimatedBuilder(
                       animation: FavoritesService.instance,
                       builder: (context, _) {
-                        final isFav =
-                            FavoritesService.instance.isFavorite(attraction);
+                        final isFav = FavoritesService.instance.isFavorite(
+                          attraction,
+                        );
                         return GestureDetector(
-                          onTap: () =>
-                              FavoritesService.instance.toggle(attraction),
+                          onTap: () {
+                            FavoritesService.instance.toggle(attraction);
+                          },
                           child: Container(
                             padding: const EdgeInsets.all(5),
                             decoration: BoxDecoration(
@@ -148,26 +200,43 @@ class AttractionCard extends StatelessWidget {
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 3,
-                                    color: Colors.black26,
-                                    offset: Offset(0, 1),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                            if (displayCity != null &&
+                                displayCity!.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.location_on_outlined,
+                                    color: Colors.white70,
+                                    size: 11,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Expanded(
+                                    child: Text(
+                                      displayCity!,
+                                      textAlign: TextAlign.right,
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 10,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
                                   ),
                                 ],
                               ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 2,
-                            ),
+                            ],
                             if (attraction.inceptionYear != null) ...[
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2),
                               Text(
                                 'ساخت: ${attraction.inceptionYear}',
-                                textAlign: TextAlign.right,
                                 style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w400,
+                                  color: Colors.white60,
+                                  fontSize: 10,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,

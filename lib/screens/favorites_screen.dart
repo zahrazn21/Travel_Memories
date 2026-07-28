@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:travel_memories/models/attraction.dart';
+import 'package:travel_memories/screens/search_screen.dart';
 import 'package:travel_memories/services/favorites_service.dart';
 import 'package:travel_memories/services/memory_favorites_service.dart';
 import 'package:travel_memories/themes/app_background_theme.dart';
@@ -47,9 +48,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ),
           title: const Text(
             'حذف همه علاقه‌مندی‌ها',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -57,9 +56,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             children: [
               Text(
                 'آیا از حذف همه موارد از لیست علاقه‌مندی‌ها مطمئنی؟',
-                style: TextStyle(
-                  color: Colors.grey.shade700,
-                ),
+                style: TextStyle(color: Colors.grey.shade700),
               ),
               const SizedBox(height: 12),
               Container(
@@ -67,10 +64,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 decoration: BoxDecoration(
                   color: Colors.red.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.red.shade200,
-                    width: 1,
-                  ),
+                  border: Border.all(color: Colors.red.shade200, width: 1),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,14 +72,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     if (attractionCount > 0)
                       Row(
                         children: [
-                          const Icon(Icons.location_on, 
-                            color: Colors.red, size: 16),
+                          const Icon(
+                            Icons.location_on,
+                            color: Colors.red,
+                            size: 16,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             '$attractionCount جاذبه',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w500),
                           ),
                         ],
                       ),
@@ -94,14 +89,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     if (memoryCount > 0)
                       Row(
                         children: [
-                          const Icon(Icons.auto_stories,
-                            color: Colors.red, size: 16),
+                          const Icon(
+                            Icons.auto_stories,
+                            color: Colors.red,
+                            size: 16,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             '$memoryCount خاطره',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w500),
                           ),
                         ],
                       ),
@@ -115,21 +111,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text(
                 'انصراف',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text(
                 'حذف همه',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -141,8 +131,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       for (final attraction in List.from(FavoritesService.instance.favorites)) {
         FavoritesService.instance.remove(attraction);
       }
-      
-      for (final memory in List.from(MemoryFavoritesService.instance.favorites)) {
+
+      for (final memory in List.from(
+        MemoryFavoritesService.instance.favorites,
+      )) {
         await MemoryFavoritesService.instance.remove(memory['id'] as int);
       }
 
@@ -201,15 +193,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       ),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 0.72,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                      ),
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.72,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
                       itemCount: totalCount,
                       itemBuilder: (context, index) {
-                        final isAttraction =
-                            index < attractionFavorites.length;
+                        final isAttraction = index < attractionFavorites.length;
                         final child = isAttraction
                             ? _buildAttractionCard(
                                 context,
@@ -218,8 +209,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                               )
                             : _buildMemoryCard(
                                 context,
-                                memoryFavorites[
-                                    index - attractionFavorites.length],
+                                memoryFavorites[index -
+                                    attractionFavorites.length],
                                 theme,
                               );
 
@@ -449,11 +440,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 children: [
                   BackdropFilter(
                     filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                    child: Container(
-                      color: Colors.transparent,
-                    ),
+                    child: Container(color: Colors.transparent),
                   ),
-                  AttractionCard(attraction: attraction, showFavoriteButton: false),
+                  AttractionCard(
+                    attraction: attraction,
+                    showFavoriteButton: false,
+                  ),
                 ],
               ),
             ),
@@ -474,7 +466,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.location_on_rounded, color: Colors.white, size: 11),
+                  Icon(
+                    Icons.location_on_rounded,
+                    color: Colors.white,
+                    size: 11,
+                  ),
                   SizedBox(width: 4),
                   Text(
                     'جاذبه',
@@ -499,54 +495,54 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 onTap: () => _confirmAndRemove(context, attraction),
                 child: const Padding(
                   padding: EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.close,
-                    color: Colors.white,
-                    size: 16,
-                  ),
+                  child: Icon(Icons.close, color: Colors.white, size: 16),
                 ),
               ),
             ),
           ),
-          Positioned(
-            bottom: 8,
-            left: 8,
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 110),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                  width: 0.5,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.place_rounded,
-                      color: Colors.white.withOpacity(0.8), size: 11),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      (attraction.province != null &&
-                              attraction.province!.isNotEmpty)
-                          ? attraction.province!
-                          : '—',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // Positioned(
+          //   bottom: 8,
+          //   left: 8,
+          //   child: Container(
+          //     constraints: const BoxConstraints(maxWidth: 110),
+          //     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          //     decoration: BoxDecoration(
+          //       color: Colors.black.withOpacity(0.4),
+          //       borderRadius: BorderRadius.circular(12),
+          //       border: Border.all(
+          //         color: Colors.white.withOpacity(0.2),
+          //         width: 0.5,
+          //       ),
+          //     ),
+          //     child: Row(
+          //       mainAxisSize: MainAxisSize.min,
+          //       children: [
+          //         Icon(
+          //           Icons.place_rounded,
+          //           color: Colors.white.withOpacity(0.8),
+          //           size: 11,
+          //         ),
+          //         const SizedBox(width: 4),
+          //         Flexible(
+          //           child: Text(
+          //             (attraction.province != null &&
+          //                     attraction.province!.isNotEmpty)
+          //                 ? attraction.province!
+          //                 : '—',
+          //             style: const TextStyle(
+          //               color: Colors.white,
+          //               fontSize: 11,
+          //               fontWeight: FontWeight.w600,
+          //             ),
+          //             overflow: TextOverflow.ellipsis,
+          //             maxLines: 1,
+          //           ),
+          //         ),
+          //       ],
+          //     ),
+          //   ),
+          // ),
+        
         ],
       ),
     );
@@ -562,8 +558,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final city = memory['city'] as String?;
     final attraction = memory['attractionName'] as String?;
     final mood = memory['mood']?.toString();
-    final moodGlyph =
-        (mood == null || mood.isEmpty) ? '😊' : mood.substring(0, mood.length >= 2 ? 2 : 1);
+    final moodGlyph = (mood == null || mood.isEmpty)
+        ? '😊'
+        : mood.substring(0, mood.length >= 2 ? 2 : 1);
     final locationLabel = (attraction != null && attraction.isNotEmpty)
         ? attraction
         : (city != null && city.isNotEmpty ? city : '—');
@@ -612,8 +609,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ),
                   Container(
                     color: Colors.black.withOpacity(0.25),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     child: Row(
                       children: [
                         Text(moodGlyph, style: const TextStyle(fontSize: 14)),
@@ -679,11 +678,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 onTap: () => _confirmAndRemoveMemory(context, memory),
                 child: const Padding(
                   padding: EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.close,
-                    color: Colors.white,
-                    size: 16,
-                  ),
+                  child: Icon(Icons.close, color: Colors.white, size: 16),
                 ),
               ),
             ),
@@ -705,8 +700,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.place_rounded,
-                      color: Colors.white.withOpacity(0.8), size: 11),
+                  Icon(
+                    Icons.place_rounded,
+                    color: Colors.white.withOpacity(0.8),
+                    size: 11,
+                  ),
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
@@ -791,10 +789,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 shadows: [
-                  Shadow(
-                    blurRadius: 8,
-                    color: Colors.black.withOpacity(0.2),
-                  ),
+                  Shadow(blurRadius: 8, color: Colors.black.withOpacity(0.2)),
                 ],
               ),
             ),
@@ -827,11 +822,22 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     size: 16,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'با جستجو شروع کنید',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 14,
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SearchScreen()),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        'با جستجو شروع کنید',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                   ),
                 ],

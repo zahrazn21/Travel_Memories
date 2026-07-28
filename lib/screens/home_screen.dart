@@ -250,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 10),
                 Expanded(
                   child: ClipRRect(
                     borderRadius: const BorderRadius.only(
@@ -442,7 +442,6 @@ class _HomeScreenState extends State<HomeScreen> {
         final name = city['name_fa'] as String;
 
         return Listener(
-          // 🔹 به محض شروع فشردن کارت، دانلود سریعاً شروع می‌شود
           onPointerDown: (_) {
             AttractionsService.prefetchCity(
               lat: (city['lat'] as num).toDouble(),

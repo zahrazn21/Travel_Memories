@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:travel_memories/screens/attractions_screen.dart';
 import 'package:travel_memories/themes/app_background_theme.dart';
 
@@ -39,7 +41,7 @@ class _AllCitiesScreenState extends State<AllCitiesScreen> {
     final appTheme = theme.extension<AppBackgroundTheme>()!;
 
     final isDark = appTheme.textColor == Colors.white;
-    final isPink = theme.primaryColor == Color.fromARGB(255, 255, 207, 223);
+    final isPink = theme.primaryColor == const Color.fromARGB(255, 255, 207, 223);
 
     final primaryColor = isPink
         ? const Color(0xFFE91E63)
@@ -58,9 +60,7 @@ class _AllCitiesScreenState extends State<AllCitiesScreen> {
           child: Column(
             children: [
               _buildHeader(context, appTheme, primaryColor),
-
               _buildSearchBar(appTheme, primaryColor),
-
               Expanded(
                 child: _filteredCities.isEmpty
                     ? _buildEmptyState(appTheme, primaryColor)
@@ -68,11 +68,11 @@ class _AllCitiesScreenState extends State<AllCitiesScreen> {
                         padding: const EdgeInsets.all(16),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 0.75,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                            ),
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.72,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
                         itemCount: _filteredCities.length,
                         itemBuilder: (context, index) {
                           final city = _filteredCities[index];
@@ -220,8 +220,8 @@ class _AllCitiesScreenState extends State<AllCitiesScreen> {
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                _isSearching ? Icons.search : Icons.search,
+              child: const Icon(
+                Icons.search,
                 color: Colors.white,
                 size: 24,
               ),
@@ -239,6 +239,9 @@ class _AllCitiesScreenState extends State<AllCitiesScreen> {
     Color primaryColor,
     int index,
   ) {
+    final double? lat = double.tryParse('${city['latitude'] ?? city['lat']}');
+    final double? lng = double.tryParse('${city['longitude'] ?? city['lng']}');
+
     return TweenAnimationBuilder(
       tween: Tween<double>(begin: 0, end: 1),
       duration: Duration(milliseconds: 300 + (index * 50)),
@@ -277,7 +280,6 @@ class _AllCitiesScreenState extends State<AllCitiesScreen> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // تصویر شهر
                 Image.asset(
                   "images/cities/${city['image']}",
                   fit: BoxFit.cover,
@@ -298,68 +300,79 @@ class _AllCitiesScreenState extends State<AllCitiesScreen> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.7),
+                        Colors.black.withOpacity(0.75),
                       ],
                       stops: const [0.3, 1.0],
                     ),
                   ),
                 ),
 
+                if (lat != null && lng != null)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: CityWeatherBadge(lat: lat, lng: lng),
+                  ),
+
                 Positioned(
                   bottom: 0,
                   left: 0,
                   right: 0,
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          city['name_fa'],
+                          city['name_fa'] ?? '',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             const Icon(
                               Icons.location_on,
                               color: Colors.white70,
-                              size: 14,
+                              size: 13,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              city['province_fa'] ?? 'استان',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
+                            const SizedBox(width: 3),
+                            Expanded(
+                              child: Text(
+                                city['province_fa'] ?? 'استان',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Row(
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.people,
                                   color: Colors.white70,
-                                  size: 14,
+                                  size: 13,
                                 ),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: 3),
                                 Text(
                                   '${city['population'] ?? '--'}',
                                   style: const TextStyle(
                                     color: Colors.white70,
-                                    fontSize: 12,
+                                    fontSize: 11,
                                   ),
                                 ),
                               ],
@@ -367,11 +380,11 @@ class _AllCitiesScreenState extends State<AllCitiesScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
-                                vertical: 4,
+                                vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: primaryColor.withOpacity(0.8),
-                                borderRadius: BorderRadius.circular(12),
+                                color: primaryColor.withOpacity(0.85),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Text(
                                 'مشاهده',
@@ -428,7 +441,7 @@ class _AllCitiesScreenState extends State<AllCitiesScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'برای «${_searchQuery}» نتیجه‌ای پیدا نشد',
+            'برای «$_searchQuery» نتیجه‌ای پیدا نشد',
             style: TextStyle(
               color: theme.textColor.withOpacity(0.6),
               fontSize: 14,
@@ -474,6 +487,129 @@ class _AllCitiesScreenState extends State<AllCitiesScreen> {
             label: Text(
               'نمایش همه شهرها',
               style: TextStyle(color: primaryColor, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CityWeatherBadge extends StatefulWidget {
+  final double lat;
+  final double lng;
+
+  const CityWeatherBadge({
+    super.key,
+    required this.lat,
+    required this.lng,
+  });
+
+  @override
+  State<CityWeatherBadge> createState() => _CityWeatherBadgeState();
+}
+
+class _CityWeatherBadgeState extends State<CityWeatherBadge> {
+  static final Map<String, String> _tempCache = {};
+  String? _temp;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchWeather();
+  }
+
+  Future<void> _fetchWeather() async {
+    final cacheKey = '${widget.lat}_${widget.lng}';
+
+    if (_tempCache.containsKey(cacheKey)) {
+      if (mounted) {
+        setState(() {
+          _temp = _tempCache[cacheKey];
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    try {
+        final url = Uri.parse(
+        'https://api.open-meteo.com/v1/forecast'
+        '?latitude=${widget.lat}'
+        '&longitude=${widget.lng}'
+        '&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m',
+      );
+      final response = await http.get(url).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final currentTemp = data['current']['temperature_2m'];
+        final tempStr = '${currentTemp.round()}°C';
+
+        _tempCache[cacheKey] = tempStr;
+
+        if (mounted) {
+          setState(() {
+            _temp = tempStr;
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.45),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const SizedBox(
+          width: 10,
+          height: 10,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.5,
+            color: Colors.orangeAccent,
+          ),
+        ),
+      );
+    }
+
+    if (_temp == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.thermostat_rounded,
+            color: Colors.orangeAccent,
+            size: 14,
+          ),
+          const SizedBox(width: 2),
+          Text(
+            _temp!,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

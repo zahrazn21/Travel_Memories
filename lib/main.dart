@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:travel_memories/providers/theme_provider.dart';
 import 'package:travel_memories/screens/home_screen.dart';
 import 'package:travel_memories/screens/search_screen.dart';
@@ -17,6 +18,7 @@ import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
   await FavoritesService.instance.load();
   await dotenv.load(fileName: ".env");
 
@@ -39,7 +41,7 @@ class MyApp extends StatelessWidget {
     final themeProvider = context.watch<ThemeProvider>();
 
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'travel memory',
       theme: themeProvider.currentTheme.copyWith(
         textTheme: const TextTheme(
           displayLarge:   TextStyle(fontFamily: 'PlaypenSansArabic'),

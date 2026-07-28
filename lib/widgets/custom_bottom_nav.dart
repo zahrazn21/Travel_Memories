@@ -134,7 +134,7 @@ class CustomBottomNav extends StatelessWidget {
                     : menuTheme.textColor.withOpacity(0.5),
                 size: isSelected ? (isHome ? 26 : 22) : (isHome ? 22 : 18),
                 shadows: isSelected
-                    ? [const Shadow(blurRadius: 10, color: Colors.white)]
+                    ? [const Shadow(blurRadius: 1, color: Colors.white)]
                     : [],
               ),
             ),
